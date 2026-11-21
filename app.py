@@ -66,8 +66,8 @@ def normalize(text):
 
 def language(text, default):
     words = set(normalize(text).split())
-    fr = words & set("ou trouve est je peux comment adresse chercher quels quelle les des une pour bonjour manger horaires bibliotheque".split())
-    en = words & set("where is what how i can the to find near hours library hello get food address are".split())
+    fr = words & set("ou trouve est je peux comment adresse chercher quels quelle les des une pour bonjour manger horaires bibliotheque merci loin".split())
+    en = words & set("where is what how i can the to find near hours library hello get food address are thanks thank far".split())
     return "fr" if len(fr) > len(en) else "en" if len(en) > len(fr) else default
 
 
@@ -98,7 +98,7 @@ def gemini_key():
     return None
 
 
-def answer_with_gemini(question, catalog, lang, topic):
+def answer_with_gemini(question, catalog, lang, topic, previous):
     key = gemini_key()
     if not key:
         return None
@@ -112,12 +112,13 @@ def answer_with_gemini(question, catalog, lang, topic):
         "systemInstruction": {"parts": [{"text": (
             "You are Gee-Gee, a friendly guide at the University of Ottawa. Speak to one student. "
             f"Reply in {'Canadian French using tu' if lang == 'fr' else 'plain Canadian English'}. "
-            "Use one or two brief, natural spoken sentences. Be practical and vary your phrasing. "
+            "Use two or three natural spoken sentences when the facts warrant it. Start with a direct answer, then give a concrete useful next step. Be warm without filler or generic praise. "
             "Keep navigation relative to CRX when the given guidance does so. A map will appear automatically. "
             "Use only the verified guidance for the selected topic. Never invent a turn, route, distance, "
             "entrance, address, schedule, price, contact or URL. Do not repeat personal details. "
             "If no topic fits, use topic NONE and give a friendly campus-related clarification without claiming any facts. "
             + (f"The server already verified the topic; use {topic}. " if topic else "")
+            + (f"The previous topic was {previous}. Use it only if this question clearly follows up. " if previous else "")
             + json.dumps(glossary, ensure_ascii=False)
         )}]},
         "contents": [{"parts": [{"text": question}]}],
@@ -181,24 +182,52 @@ def ask():
     lang = language(question, preferred(data))
     text = f" {normalize(question)} "
     catalog = facts()
+    previous = data.get("previous")
+    previous = previous if isinstance(previous, str) and previous in catalog else None
+    if re.fullmatch(r" (merci(?: beaucoup)?|thanks(?: a lot)?|thank you(?: very much)?) ", text):
+        return jsonify(lang=lang, text="Avec plaisir ! Tu cherches un autre endroit ou un service ?" if lang == "fr"
+                       else "You’re welcome! Are you looking for another place or service?")
     matches = {key: [word for word in fact["aliases"] if f" {word} " in text] for key, fact in catalog.items()}
     matches = {key: words for key, words in matches.items() if words}
-    if re.search(r"\b(horaire[s]?|ouvr[ei]\w*|hours|open|close[s]?|frais|prix|fee[s]?|deadline[s]?|ferme[es]?|holiday[s]?|date limite|aujourd hui|today|tomorrow|demain)\b", text):
+    selected = next(iter(matches)) if len(matches) == 1 else None
+    if not matches and previous and re.search(
+        r"\b(c est loin|est ce loin|is it far|how far|combien de temps|how long(?: does it take)?|comment j y vais|comment y aller|how do i get there|where is it|c est ou|son adresse|what is its address|est ce ouvert|is it open)\b", text
+    ):
+        selected = previous
+    if selected in PLACES and re.search(r"\b(loin|distance|how far|combien de temps|how long)\b", text):
+        x, y = PLACES[selected]["point"]
+        ox, oy = PLACES["crx"]["point"]
+        metres = round(math.hypot(x - ox, y - oy) / 25) * 25
+        response = format_fact(catalog[selected], lang)
+        if selected == "crx":
+            response["text"] = orientation(selected, lang)
+        else:
+            response["text"] = (f"Depuis le CRX, compte environ {metres} mètres à vol d’oiseau. Regarde les deux repères sur la carte pour te situer."
+                                if lang == "fr" else f"It’s about {metres} metres from CRX as the crow flies. Use the two markers to get your bearings.")
+        if selected != "crx" and re.search(r"\b(combien de temps|how long)\b", text):
+            response["text"] += (" Je ne peux pas confirmer le temps de marche. Ouvre l’itinéraire pour l’estimer."
+                                 if lang == "fr" else " Open directions for an estimate of the walking time.")
+        return jsonify(lang=lang, **response)
+    if re.search(r"\b(horaire[s]?|ouvert[es]*|ouvr[ei]\w*|hours|open|close[s]?|frais|prix|fee[s]?|deadline[s]?|ferme[es]?|holiday[s]?|date limite|aujourd hui|today|tomorrow|demain)\b", text):
         message = ("Cette information peut changer. Je ne peux pas la confirmer ici. Vérifiez la page officielle.",
                    "This information can change. I can’t confirm it here. Check the official page.")
-        source = format_fact(catalog[next(iter(matches))], lang)["source"] if len(matches) == 1 else MAP[lang]
+        if selected == "mrt" or re.search(r"\b(library|bibliotheque)\b", text):
+            source = ("https://www.uottawa.ca/bibliotheque/bibliotheques-heures-ouverture" if lang == "fr"
+                      else "https://www.uottawa.ca/library/locations-hours")
+        else:
+            source = format_fact(catalog[selected], lang)["source"] if selected else MAP[lang]
         return jsonify(lang=lang, text=message[lang == "en"], source=source)
     if re.search(r"\b(courriel|email|e mail|telephone|phone|number|numero|password|mot de passe|wifi|wi fi|passwords)\b", text):
         message = ("Je ne peux pas confirmer ce renseignement. Consultez la fiche officielle.",
                    "I can’t confirm that detail. Check the official page.")
-        source = format_fact(catalog[next(iter(matches))], lang)["source"] if len(matches) == 1 else MAP[lang]
+        source = format_fact(catalog[selected], lang)["source"] if selected else MAP[lang]
         return jsonify(lang=lang, text=message[lang == "en"], source=source)
     if len(matches) > 1:
-        return jsonify(lang=lang, text="De quel lieu ou service voulez-vous parler ?" if lang == "fr" else "Which place or service do you mean?", options=list(matches))
+        return jsonify(lang=lang, text="De quel lieu ou service voulez-vous parler ?" if lang == "fr" else "Which place or service do you mean?", options=list(matches),
+                       option_labels={key: catalog[key]["aliases"][0] if key not in PLACES else PLACES[key]["code"] for key in matches})
     if not matches and re.search(r"\b(bibliotheque|library)\b", text):
         return jsonify(lang=lang, text="Quelle bibliothèque cherchez-vous ?" if lang == "fr" else "Which library are you looking for?", options=["mrt"])
-    selected = next(iter(matches), None)
-    natural = answer_with_gemini(question, catalog, lang, selected)
+    natural = answer_with_gemini(question, catalog, lang, selected, previous)
     if natural:
         selected, answer = natural
     if selected:
@@ -208,7 +237,7 @@ def ask():
         elif selected in PLACES and not re.search(r"\b(adresse|address)\b", text):
             result["text"] = orientation(selected, lang)
         return jsonify(lang=lang, **result)
-    return jsonify(lang=lang, text="Je n’ai pas de réponse vérifiée pour cette question. Consultez le site officiel de l’Université d’Ottawa." if lang == "fr" else "I don’t have a verified answer to this question. Check the University of Ottawa’s official website.", source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en")
+    return jsonify(lang=lang, text="Je n’ai pas trouvé ce que tu cherches. Donne-moi le nom du pavillon ou dis-moi si tu cherches un service, un logement ou de l’aide pour tes cours." if lang == "fr" else "I couldn’t find what you’re looking for. Tell me the building name, or whether you need a student service, housing or help with classes.", source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en")
 
 
 @app.post("/api/transfer")
