@@ -53,7 +53,7 @@ const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisse
 let lang = "fr", sound = true, state = "ready", items = [], lastTopic, confirmation, generalExchange, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
-let cameraBackground, microphoneSetup = 0;
+let cameraBackground, microphoneSetup = 0, dictationStream;
 let audioActive = false, recentSpeech, revealTimer;
 let speechLocale = "fr-CA", speechReveal;
 try {
@@ -151,7 +151,13 @@ function stopListening() {
   recognition = undefined;
   audioActive = false;
   active?.abort();
+  releaseDictationStream();
   clearVoiceDraft();
+}
+
+function releaseDictationStream() {
+  dictationStream?.getTracks().forEach(track => track.stop());
+  dictationStream = undefined;
 }
 
 function scheduleListening(delay = 500) {
@@ -298,7 +304,7 @@ function stopVoice() {
   if (!utterance) return;
   const job = utterance;
   utterance = undefined;
-  if (job.started) recentSpeech = {text: job.text, until: performance.now() + 550};
+  if (job.started) recentSpeech = {text: job.text, until: performance.now() + 2000};
   if (job.local) {
     clearTimeout(job.watchdog);
     window.speechSynthesis.cancel();
@@ -417,13 +423,42 @@ async function say(text, replyLang, spoken, reveal, replyDeadline) {
   }
 }
 
-function resemblesPlayback(transcript, playback) {
+function playbackWords(text) {
+  return text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
+    .match(/[\p{L}\p{N}]+/gu) || [];
+}
+
+function spellingDistance(left, right) {
+  let row = Array.from({length:right.length + 1}, (_, i) => i);
+  for (const [i, letter] of [...left].entries()) {
+    const next = [i + 1];
+    for (let j = 1; j <= right.length; j++) {
+      next[j] = Math.min(next[j - 1] + 1, row[j] + 1, row[j - 1] + (letter !== right[j - 1]));
+    }
+    row = next;
+  }
+  return row[right.length];
+}
+
+function resemblesPlayback(transcript, playback, isFinal) {
   if (!playback) return false;
-  const words = value => value.normalize("NFKD").replace(/\p{M}/gu, "")
-    .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-  const heard = words(transcript), spoken = words(playback);
-  return !heard || (" " + spoken + " ").includes(" " + heard + " ") ||
-    (heard.length >= 4 && spoken.split(" ").some(word => word.startsWith(heard)));
+  const words = playbackWords(transcript);
+  const spoken = playbackWords(playback);
+  const heard = words.join("");
+  if (!heard) return true;
+  if (spoken.join("").includes(heard)) return true;
+  if (!isFinal && heard.length < 8 && words.length < 2) return true;
+  if (heard.length < 9) return false;
+  const tolerance = Math.floor(heard.length * .22);
+  for (let start = 0; start < spoken.length; start++) {
+    let fragment = "";
+    for (let i = start; i < spoken.length; i++) {
+      fragment += spoken[i];
+      if (fragment.length > heard.length + tolerance) break;
+      if (fragment.length >= heard.length - tolerance && spellingDistance(heard, fragment) <= tolerance) return true;
+    }
+  }
+  return false;
 }
 
 function interruptForSpeech() {
@@ -824,7 +859,7 @@ function normalizeDictation(text) {
     .replace(/\b(?:Maurisset|Mauricet|Moricet|Maurice est)\b/gi, "Morisset");
 }
 
-function startListening(auto = false) {
+async function startListening(auto = false) {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const fail = (reason) => {
     if (auto) voiceBlocked = true;
@@ -882,20 +917,24 @@ function startListening(auto = false) {
     }
     const confirmed = [], partial = [];
     const start = auto ? offset : event.resultIndex || 0;
+    const playback = auto && (utterance?.started ? utterance.text :
+      recentSpeech?.until > performance.now() ? recentSpeech.text : "");
+    let nextIndex = start;
     for (let i = start; i < event.results.length; i++) {
       const result = event.results[i];
-      (result.isFinal ? confirmed : partial).push(result[0].transcript);
+      const fragment = result[0].transcript.trim();
+      if (resemblesPlayback(fragment, playback, result.isFinal)) {
+        if (result.isFinal && i === nextIndex) nextIndex++;
+        continue;
+      }
+      (result.isFinal ? confirmed : partial).push(fragment);
     }
     const text = confirmed.join(" ").trim();
     if (auto) {
       const hypothesis = partial.join(" ").trim();
       const candidate = [text, hypothesis].filter(Boolean).join(" ");
-      if (!candidate) return;
-      const playback = utterance?.started ? utterance.text :
-        recentSpeech?.until > performance.now() ? recentSpeech.text : "";
-      if (!committed && !finalized && !interim && resemblesPlayback(candidate, playback)) {
-        // Drop finalized echo. Keep interim indices so a corrected hypothesis can interrupt.
-        offset = Math.max(offset, event.results.length - partial.length);
+      if (!candidate) {
+        offset = nextIndex;
         nextOffset = offset;
         return;
       }
@@ -924,6 +963,7 @@ function startListening(auto = false) {
     clearTimeout(startup);
     if (recognition !== active) return;
     recognition = undefined;
+    releaseDictationStream();
     audioActive = false;
     if (auto && revision === voiceRevision) {
       updateDraft(true);
@@ -934,11 +974,23 @@ function startListening(auto = false) {
     if (auto) scheduleListening(150);
   };
   try {
-    // Let Chrome own the microphone and avoid opening a competing media stream.
-    active.start();
+    if (!auto) {
+      active.start();
+      return;
+    }
+    // Use the processed microphone track for recognition when Chrome supports it.
+    const input = await navigator.mediaDevices.getUserMedia(microphone);
+    if (recognition !== active) {
+      input.getTracks().forEach(track => track.stop());
+      return;
+    }
+    dictationStream = input;
+    active.start(input.getAudioTracks()[0]);
   } catch (error) {
     clearTimeout(startup);
+    if (recognition !== active) return;
     recognition = undefined;
+    releaseDictationStream();
     status("ready");
     fail(error.name);
   }
@@ -946,6 +998,11 @@ function startListening(auto = false) {
 
 $("mic").onclick = () => {
   voiceBlocked = false;
+  if (utterance || pending) {
+    interruptForSpeech();
+    if (!recognition) startListening(automatic);
+    return;
+  }
   if (recognition) {
     stopListening();
     if (["listening", "micStarting"].includes(state)) status("ready");
