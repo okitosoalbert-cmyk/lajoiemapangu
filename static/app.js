@@ -49,7 +49,7 @@ const maps = {
   en: "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 };
 const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisset", food: "food", campus: "services", admission: "Admission"};
-let lang = "fr", sound = false, state = "ready", items = [], lastTopic, confirmation, activity, pending, recognition, stream;
+let lang = "fr", sound = false, state = "ready", items = [], lastTopic, confirmation, generalExchange, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
@@ -248,10 +248,12 @@ async function ask(text) {
   status("working");
   const timeout = setTimeout(() => controller.abort(), 11000);
   try {
-    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation}), signal: controller.signal});
+    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation, exchange: generalExchange}), signal: controller.signal});
     if (!response.ok) throw Error("Request failed");
     const result = await response.json();
     if (pending !== controller) return;
+    generalExchange = result.general ? {question: text, answer: result.text} : undefined;
+    if (result.general) lastTopic = undefined;
     confirmation = result.option_queries && result.options?.length === 1 ? result.options[0] : undefined;
     const words = translations[result.lang];
     const article = bubble(result.text);
@@ -320,6 +322,7 @@ function clearSession() {
   items = [];
   lastTopic = undefined;
   confirmation = undefined;
+  generalExchange = undefined;
   status("ready");
   animate(/idle|repos/i);
 }
