@@ -438,6 +438,7 @@ initialize()
 
 if __name__ == "__main__":
     from contextlib import redirect_stderr
+    from subprocess import Popen
     import sys
     import webbrowser
 
@@ -484,8 +485,21 @@ if __name__ == "__main__":
             browser_host = f"[{browser_host}]"
         address = f"http://{browser_host}:{server.server_port}/?borne"
         print(f"INNOVA est prete sur {address}", flush=True)
-        try:
-            webbrowser.open(address, new=2)
-        except webbrowser.Error:
-            pass
+        chrome = next((
+            Path(folder) / "Google" / "Chrome" / "Application" / "chrome.exe"
+            for folder in (os.getenv("ProgramFiles"), os.getenv("ProgramFiles(x86)"), os.getenv("LOCALAPPDATA"))
+            if folder and (Path(folder) / "Google" / "Chrome" / "Application" / "chrome.exe").is_file()
+        ), None) if sys.platform == "win32" else None
+        opened = False
+        if chrome:
+            try:
+                Popen([str(chrome), address])
+                opened = True
+            except OSError:
+                pass
+        if not opened:
+            try:
+                webbrowser.open(address, new=2)
+            except webbrowser.Error:
+                pass
         server.serve_forever()
