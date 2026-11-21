@@ -116,3 +116,5 @@ Lorsque le son est activé, INNOVA utilise automatiquement la voix Gemini. Le te
 ## Histoire d’uOttawa et des Gee-Gees
 
 Seize fiches historiques bilingues sont accessibles hors ligne. Essaie « Quand l’Université d’Ottawa a-t-elle été fondée ? », « Que s’est-il passé en 1903 ? » après une question d’histoire, « Quand les Gee-Gees ont-ils gagné la Coupe Vanier ? », ou « Qui a gagné le Match Panda en 2014 ? ». Les fiches indiquent leur source et les résultats sportifs sont limités aux éditions documentées.
+
+Quand le son est actif, la réponse s’affiche dès que la lecture commence, avec l’animation de la bouche de Gee-Gee. En mode silencieux ou si la lecture échoue, le texte s’affiche seul.
