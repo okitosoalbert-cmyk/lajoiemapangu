@@ -53,6 +53,8 @@ let lang = "fr", sound = false, state = "ready", items = [], lastTopic, confirma
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
+let audioActive = false, echoUntil = 0;
+const ABSENCE_MS = 5000;
 const microphone = {
   audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true},
   video: false,
@@ -76,6 +78,7 @@ function stopListening() {
   clearTimeout(listenTimer);
   const active = recognition;
   recognition = undefined;
+  audioActive = false;
   active?.abort();
   speechPreview.textContent = "";
 }
@@ -85,7 +88,7 @@ function scheduleListening(delay = 500) {
   if (!automatic || voiceBlocked) return;
   listenTimer = setTimeout(() => {
     if (!document.hidden && !$("idle").open && !$("summary").open &&
-        !recognition && !utterance && !pending && !$("question").value.trim()) {
+        !recognition) {
       startListening(true);
     }
   }, delay);
@@ -167,8 +170,15 @@ function buildKeyboard() {
   }
 }
 
+function listeningStatus() {
+  if (audioActive) status("listening");
+  else if (recognition) status("micStarting");
+  else status("ready");
+}
+
 function touch() {
   clearTimeout(activity);
+  if (automatic && stream) return;
   activity = setTimeout(() => enterStandby(), 120000);
 }
 
@@ -193,6 +203,7 @@ function link(container, url, label) {
 }
 
 function stopVoice() {
+  if (utterance) echoUntil = performance.now() + 350;
   utterance = undefined;
   speech?.cancel();
 }
@@ -212,7 +223,8 @@ function say(text, replyLang) {
   voice.onend = voice.onerror = () => {
     if (utterance !== voice) return;
     utterance = undefined;
-    status("ready");
+    echoUntil = performance.now() + 350;
+    listeningStatus();
     animate(/idle|repos/i);
     scheduleListening();
   };
@@ -223,7 +235,8 @@ async function ask(text) {
   text = text.trim();
   if (!text || pending) return;
   touch();
-  stopListening();
+  if (!automatic) stopListening();
+  speechPreview.textContent = "";
   stopVoice();
   $("notice").textContent = "";
   $("question").value = "";
@@ -283,7 +296,7 @@ async function ask(text) {
     if (pending === controller) {
       pending = undefined;
       $("send").disabled = false;
-      if (state === "working") status("ready");
+      if (state === "working") listeningStatus();
       scheduleListening();
     }
   }
@@ -296,6 +309,7 @@ function clearSession() {
   controller?.abort();
   stopListening();
   stopVoice();
+  echoUntil = 0;
   $("send").disabled = false;
   $("messages").replaceChildren();
   $("suggestions").hidden = false;
@@ -349,7 +363,7 @@ function stopCamera() {
 
 function wake() {
   if ($("start").disabled || !$("idle").open) return;
-  stopCamera();
+  if (!automatic) stopCamera();
   $("idle").close();
   if (automatic) {
     waitForDeparture = true;
@@ -369,7 +383,7 @@ function enterStandby() {
   clearTimeout(activity);
   hideSummary();
   clearSession();
-  $("cameraStatus").textContent = "";
+  if (!stream) $("cameraStatus").textContent = "";
   if (!$("idle").open) $("idle").showModal();
   if (automatic && !document.hidden) camera();
 }
@@ -397,7 +411,11 @@ async function camera() {
     $("cameraStatus").textContent = lang === "fr"
       ? "Caméra active. Avancez vers le centre du cadre."
       : "Camera active. Step into the center of the frame.";
-    let consecutive = 0, clear = 0, videoTime = -1;
+    if (!$("idle").open && !$("summary").open) clearTimeout(activity);
+    let consecutive = 0, clear = 0, videoTime = -1, absentSince;
+    next.getVideoTracks()[0]?.addEventListener("ended", () => {
+      if (cycle === cameraCycle) cameraFailed();
+    });
     const check = () => {
       if (cycle !== cameraCycle) return;
       try {
@@ -443,13 +461,27 @@ async function camera() {
           const spread = tiles.filter(count => count >= 8).length;
           const footprint = changed / frame.length;
           const approach = footprint >= .075 && centerChanged >= 22 && spread >= 3;
-          if (waitForDeparture) {
+          if (!$("idle").open && !$("summary").open) {
+            // Keep comparing with the empty frame while a visitor stands still.
+            if (approach) absentSince = undefined;
+            else absentSince ??= performance.now();
+            if (absentSince !== undefined && performance.now() - absentSince >= ABSENCE_MS) {
+              waitForDeparture = false;
+              absentSince = undefined;
+              consecutive = 0;
+              enterStandby();
+            }
+          } else if ($("idle").open && waitForDeparture) {
             clear = footprint < .065 ? clear + 1 : 0;
             if (clear >= 9) waitForDeparture = false;
-          } else if (approach) {
+          } else if ($("idle").open && approach) {
             consecutive++;
-            if (consecutive >= 3) { wake(); return; }
-          } else {
+            if (consecutive >= 3) {
+              consecutive = 0;
+              absentSince = undefined;
+              wake();
+            }
+          } else if ($("idle").open) {
             consecutive = 0;
             if (footprint < .065) {
               cameraBackground = cameraBackground.map((value, i) => .95 * value + .05 * frame[i]);
@@ -472,6 +504,7 @@ async function camera() {
 function cameraFailed() {
   stopCamera();
   $("cameraStatus").textContent = copy().cameraFailure;
+  if (!$("idle").open && !$("summary").open) touch();
 }
 
 $("ask").onsubmit = (event) => { event.preventDefault(); ask($("question").value); };
@@ -489,7 +522,7 @@ function setSound(value) {
   sound = value;
   if (!sound) {
     stopVoice();
-    if (state === "speaking") status("ready");
+    if (state === "speaking") listeningStatus();
     scheduleListening();
   }
   $("volume").hidden = !sound;
@@ -560,16 +593,19 @@ function startListening(auto = false) {
     if (auto) voiceBlocked = true;
     showMicrophoneError(reason);
   };
-  if (!Recognition || recognition || utterance || pending) {
+  if (!Recognition || recognition || (!auto && (utterance || pending))) {
     if (!Recognition) fail();
     return;
   }
   const active = new Recognition();
   recognition = active;
-  status("micStarting");
+  if (!utterance && !pending) status("micStarting");
   active.lang = lang === "fr" ? "fr-CA" : "en-CA";
   active.interimResults = true;
-  active.continuous = false;
+  active.continuous = auto;
+  let ignoreSpeech = false;
+  const voiceBusy = () => Boolean(pending || utterance || performance.now() < echoUntil);
+  active.onspeechstart = () => { ignoreSpeech = auto && voiceBusy(); };
   const startup = setTimeout(() => {
     if (recognition !== active) return;
     stopListening();
@@ -579,26 +615,31 @@ function startListening(auto = false) {
   active.onaudiostart = () => {
     clearTimeout(startup);
     if (recognition === active) {
-      $("notice").textContent = "";
-      status("listening");
+      audioActive = true;
+      if (!pending && !utterance) {
+        $("notice").textContent = "";
+        status("listening");
+      }
     }
   };
   active.onresult = (event) => {
     clearTimeout(startup);
     if (recognition !== active) return;
-    const result = event.results[event.resultIndex || 0];
-    const text = normalizeDictation(result[0].transcript.trim()).slice(0, 500);
-    if (!text) return;
-    if (!result.isFinal) {
-      speechPreview.textContent = text;
+    if (auto && (ignoreSpeech || voiceBusy() || $("question").value.trim())) {
+      speechPreview.textContent = "";
       return;
     }
-    speechPreview.textContent = "";
-    if (auto && !$("question").value.trim()) {
-      ask(text);
-    } else if (!auto) {
-      $("question").value = text;
+    const finalized = [], interim = [];
+    for (let i = event.resultIndex || 0; i < event.results.length; i++) {
+      const result = event.results[i];
+      (result.isFinal ? finalized : interim).push(result[0].transcript);
     }
+    speechPreview.textContent = normalizeDictation(interim.join(" ").trim());
+    const text = normalizeDictation(finalized.join(" ").trim()).slice(0, 500);
+    if (!text) return;
+    speechPreview.textContent = "";
+    if (auto) ask(text);
+    else $("question").value = text;
   };
   active.onerror = (event) => {
     clearTimeout(startup);
@@ -609,9 +650,10 @@ function startListening(auto = false) {
     clearTimeout(startup);
     if (recognition !== active) return;
     recognition = undefined;
+    audioActive = false;
     speechPreview.textContent = "";
     if (["listening", "micStarting"].includes(state)) status("ready");
-    if (auto) scheduleListening(350);
+    if (auto) scheduleListening(150);
   };
   try {
     // Let Chrome own the microphone and avoid opening a competing media stream.
@@ -634,10 +676,7 @@ $("mic").onclick = () => {
   }
 };
 $("question").addEventListener("input", () => {
-  if (!automatic) return;
-  stopListening();
-  if (["listening", "micStarting"].includes(state)) status("ready");
-  if (!$("question").value.trim()) scheduleListening();
+  if (automatic) speechPreview.textContent = "";
 });
 $("finish").onclick = finish;
 $("reset").onclick = () => { hideSummary(); enterStandby(); };
@@ -667,9 +706,8 @@ document.addEventListener("visibilitychange", () => {
     stopCamera();
     stopListening();
     if (["listening", "micStarting"].includes(state)) status("ready");
-  } else if (automatic && $("idle").open) {
+  } else if (automatic) {
     camera();
-  } else {
     scheduleListening();
   }
 });
