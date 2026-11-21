@@ -256,7 +256,15 @@ async function ask(text) {
     const links = document.createElement("div");
     links.className = "links";
     if (result.source) link(links, result.source, words.source);
-    if (result.map) link(links, result.map, words.officialMap);
+    if (result.map) {
+      link(links, result.map, words.officialMap);
+      import("/static/campus-map.js")
+        .then(({showCampusMap}) => showCampusMap(article, result.id, result.lang))
+        .then(() => {
+          if (article.isConnected) $("messages").scrollTop = $("messages").scrollHeight;
+        })
+        .catch(() => {});
+    }
     if (result.route) link(links, result.route, words.route);
     if (result.verified) {
       const date = document.createElement("span");
