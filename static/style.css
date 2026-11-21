@@ -63,3 +63,9 @@ dialog{border:1px solid var(--edge);border-radius:22px;color:var(--ink);padding:
 .campus-dialog>.campus-map{width:100%;max-width:none;border:0;padding:8px 0;margin:0}
 .campus-dialog canvas{height:clamp(210px,60vh,680px)}
 .campus-dialog>button{border:1px solid var(--edge);border-radius:7px;background:var(--wash);padding:8px 12px;cursor:pointer}
+
+.campus-photo-views{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:9px}
+.campus-photo-views a{display:inline-flex;align-items:center;min-height:34px;padding:3px 10px;border-radius:7px;background:var(--wine);color:#fff;font-size:12px;font-weight:600;text-decoration:none}
+.campus-photo-views a:hover{text-decoration:underline}
+.campus-photo-views a:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.campus-photo-views small{flex-basis:100%;color:var(--muted);font-size:11px}

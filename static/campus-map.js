@@ -6,6 +6,59 @@ const campus = fetch("/static/campus-map.json").then(response => {
   return response.json();
 });
 
+// Inverse of the local metre projection used by campus-map.json.
+function coordinates([x, y]) {
+  const latitude = 45.42185 - y / 111320;
+  const longitude = -75.6805 + x / (111320 * Math.cos(45.42185 * Math.PI / 180));
+  return latitude.toFixed(6) + "," + longitude.toFixed(6);
+}
+
+function photoViews(destination, paths, fr) {
+  const location = coordinates(destination);
+  let nearest = destination, best = 65 ** 2;
+  for (const [points, type] of paths) {
+    if (type !== "road") continue;
+    for (let i = 1; i < points.length; i++) {
+      const [x, y] = points[i - 1];
+      const dx = points[i][0] - x, dy = points[i][1] - y;
+      const length = dx * dx + dy * dy;
+      if (!length) continue;
+      const fraction = Math.max(0, Math.min(1, ((destination[0] - x) * dx + (destination[1] - y) * dy) / length));
+      const point = [x + fraction * dx, y + fraction * dy];
+      const distance = (destination[0] - point[0]) ** 2 + (destination[1] - point[1]) ** 2;
+      if (distance < best) {
+        nearest = point;
+        best = distance;
+      }
+    }
+  }
+  const street = new URL("https://www.google.com/maps/@");
+  street.search = new URLSearchParams({api: "1", map_action: "pano", viewpoint: coordinates(nearest)});
+  if (nearest !== destination) {
+    const bearing = Math.atan2(destination[0] - nearest[0], nearest[1] - destination[1]);
+    street.searchParams.set("heading", Math.round(bearing * 180 / Math.PI + 360) % 360);
+  }
+  const views = document.createElement("div");
+  views.className = "campus-photo-views";
+  const choices = [
+    [fr ? "Vue aérienne 3D" : "3D aerial view", "https://earth.google.com/web/@" + location + ",70a,420d,35y,0h,60t,0r"],
+    [fr ? "Voir depuis la rue" : "View from the street", street.href],
+  ];
+  for (const [title, url] of choices) {
+    const link = document.createElement("a");
+    link.textContent = title;
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    views.append(link);
+  }
+  const note = document.createElement("small");
+  note.textContent = fr ? "S’ouvre dans un autre onglet. Images selon la couverture Google."
+    : "Opens in a new tab. Image availability depends on Google coverage.";
+  views.append(note);
+  return views;
+}
+
 export async function showCampusMap(container, destination, lang, originId) {
   const labels = lang === "fr"
     ? {title:"Carte 3D du campus", plan:"Vue schématique · CRX comme point de repère", left:"Tourner à gauche", right:"Tourner à droite", closer:"Agrandir", farther:"Réduire", reset:"Vue du campus", focus:"Recentrer", fail:"Carte intégrée indisponible. Ouvre la carte officielle dans la réponse."}
@@ -31,7 +84,7 @@ export async function showCampusMap(container, destination, lang, originId) {
     credit.rel = "noopener noreferrer";
     credit.textContent = "© OpenStreetMap contributors";
     caption.append(labels.plan + " · ", credit);
-    map.append(heading, canvas, controls, caption);
+    map.append(heading, canvas, controls, photoViews(target.point, data.paths, lang === "fr"), caption);
     container.append(map);
 
     const ctx = canvas.getContext("2d");

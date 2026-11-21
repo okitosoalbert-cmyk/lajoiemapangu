@@ -126,3 +126,5 @@ Une question comme « Qui donne GNG1503 à l’automne 2026 ? » ou « Quels cou
 Pour préparer un déplacement, demande « Comment aller de CRX à Fauteux ? ». La carte permet de choisir le repère de départ, de passer de la vue du dessus à la vue inclinée et d’agrandir la carte. Les chemins piétons et les distances approximatives reposent sur des données OpenStreetMap. Les trajets sont extérieurs, peuvent comprendre des escaliers et se terminent près des pavillons. Pour les entrées accessibles, consulte la carte officielle.
 
 La date et l’heure sont calculées à chaque demande à partir de l’horloge du PC, dans le fuseau d’Ottawa. « Cette session » cible le trimestre de cette date et l’horaire public détermine les sections disponibles. La date sur les fiches de référence correspond à leur vérification.
+
+Pour reconnaître la destination, le bouton **Vue aérienne 3D** ouvre Google Earth et **Voir depuis la rue** ouvre Street View près du pavillon. Ces vues s’ouvrent dans un autre onglet et dépendent de la couverture des images de Google.
