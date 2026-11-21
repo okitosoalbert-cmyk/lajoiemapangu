@@ -88,3 +88,7 @@ INNOVA reconnaît 64 entrées liées aux bâtiments, dont toutes les entrées du
 ### Orientation entre deux lieux
 
 Demandez « Comment aller de Tabaret à SITE ? » ou, après une destination, « Et si je pars de Tabaret ? ». INNOVA indique la direction et la distance à vol d’oiseau entre les deux repères. Le lien d’itinéraire ouvre une recherche de trajet à pied avec le départ et la destination déjà renseignés. La carte affiche les deux repères lorsqu’ils sont dans le même secteur. En cas de faute dans le nom d’un bâtiment, INNOVA propose une confirmation. Une suggestion unique peut être confirmée en disant « Oui ».
+
+## Recherche dans les pages publiques uOttawa
+
+Si une question dépasse les fiches locales, INNOVA peut chercher dans un instantané de 22 563 entrées URL-langue issues des plans de site publics d’uOttawa. Les actualités, événements et répertoires de profils ont été écartés de cet instantané. Le classement s’effectue sur le PC. Le serveur consulte jusqu’à trois pages publiques uOttawa et présente un passage ou des liens officiels. Les extraits sont mis en cache en mémoire pendant quinze minutes. Cette recherche fonctionne sans clé Gemini et demande Internet. L’instantané doit être renouvelé pour inclure les nouvelles adresses, tandis que le contenu des pages est lu à la demande. Les espaces de connexion, les PDF et les pages absentes de l’index ne sont pas couverts.
