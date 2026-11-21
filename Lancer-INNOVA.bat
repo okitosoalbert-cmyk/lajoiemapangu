@@ -21,9 +21,9 @@ if not defined GEMINI_API_KEY if not exist "%LOCALAPPDATA%\INNOVA\gemini-key.txt
   if exist "Configurer-Gemini.bat" call "Configurer-Gemini.bat" lancement
 )
 echo.
-echo Ouvre http://127.0.0.1:5100/?borne dans Chrome.
+echo INNOVA ouvrira son propre onglet. Utilise l'adresse affichee si besoin.
 echo Garde cette fenetre ouverte pendant la demonstration.
-".venv\Scripts\python.exe" app.py
+".venv\Scripts\python.exe" app.py --open-browser
 if errorlevel 1 goto launch_failed
 exit /b 0
 
