@@ -54,8 +54,10 @@ let lang = "fr", sound = false, state = "ready", items = [], lastTopic, confirma
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
-let audioActive = false, echoUntil = 0;
+let audioActive = false, echoUntil = 0, speechTimer;
 const ABSENCE_MS = 5000;
+const SPEECH_PAUSE_MS = 1700;
+let voiceDraft = "", voiceDraftTimer;
 const microphone = {
   audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true},
   video: false,
@@ -75,13 +77,30 @@ function updateAutomatic() {
   button.setAttribute("aria-pressed", String(automatic));
 }
 
+function clearVoiceDraft() {
+  clearTimeout(voiceDraftTimer);
+  voiceDraft = "";
+  speechPreview.textContent = "";
+}
+
+function sendVoiceDraftAfter(delay = SPEECH_PAUSE_MS) {
+  clearTimeout(voiceDraftTimer);
+  if (!voiceDraft) return;
+  voiceDraftTimer = setTimeout(() => {
+    const text = normalizeDictation(voiceDraft).slice(0, 500);
+    clearVoiceDraft();
+    if (!document.hidden && !$("idle").open && !$("summary").open &&
+        !pending && !utterance && !$("question").value.trim()) ask(text);
+  }, delay);
+}
+
 function stopListening() {
   clearTimeout(listenTimer);
   const active = recognition;
   recognition = undefined;
   audioActive = false;
   active?.abort();
-  speechPreview.textContent = "";
+  clearVoiceDraft();
 }
 
 function scheduleListening(delay = 500) {
@@ -96,6 +115,7 @@ function scheduleListening(delay = 500) {
 }
 const svg = (name) => '<svg aria-hidden="true" viewBox="0 0 24 24">' + paths[name] + '</svg>';
 const speech = window.speechSynthesis;
+$("volume").value = "0.65";
 const viewer = document.querySelector("model-viewer");
 const mascot = window.createMascot($("avatar"));
 
@@ -204,7 +224,9 @@ function link(container, url, label) {
 }
 
 function stopVoice() {
-  if (utterance) echoUntil = performance.now() + 350;
+  clearTimeout(speechTimer);
+  if (!utterance) return;
+  echoUntil = performance.now() + 350;
   utterance = undefined;
   speech?.cancel();
 }
@@ -212,24 +234,60 @@ function stopVoice() {
 function say(text, replyLang) {
   if (!sound || !speech) return;
   stopVoice();
-  const voice = new SpeechSynthesisUtterance(text);
-  utterance = voice;
-  voice.lang = replyLang === "fr" ? "fr-CA" : "en-CA";
-  voice.volume = Number($("volume").value);
-  voice.onstart = () => {
-    if (utterance !== voice) return;
-    status("speaking");
-    animate(/speak|talk|parl|mouth/i);
-  };
-  voice.onend = voice.onerror = () => {
-    if (utterance !== voice) return;
-    utterance = undefined;
-    echoUntil = performance.now() + 350;
-    listeningStatus();
-    animate(/idle|repos/i);
-    scheduleListening();
-  };
-  try { speech.speak(voice); } catch { voice.onerror(); }
+  const locale = replyLang === "fr" ? "fr-CA" : "en-CA";
+  const installed = (speech.getVoices?.() || []).filter(voice => voice.localService);
+  const preferredVoice = installed.find(voice => voice.lang.toLowerCase() === locale.toLowerCase()) ||
+    installed.find(voice => voice.lang.toLowerCase().startsWith(replyLang + "-"));
+  const segments = [];
+  let segment = "";
+  for (const word of text.trim().split(/\s+/)) {
+    if (segment && (segment.length + word.length > 150 || (segment.length > 65 && /[.!?]$/.test(segment)))) {
+      segments.push(segment);
+      segment = "";
+    }
+    segment = segment ? segment + " " + word : word;
+  }
+  if (segment) segments.push(segment);
+  if (!segments.length) return;
+
+  function play(index) {
+    const voice = new SpeechSynthesisUtterance(segments[index]);
+    utterance = voice;
+    if (preferredVoice) voice.voice = preferredVoice;
+    voice.lang = preferredVoice?.lang || locale;
+    voice.volume = Number($("volume").value);
+    voice.rate = 0.94;
+    voice.onstart = () => {
+      if (utterance !== voice || state === "speaking") return;
+      status("speaking");
+      animate(/speak|talk|parl|mouth/i);
+    };
+    const next = () => {
+      if (utterance !== voice) return;
+      clearTimeout(speechTimer);
+      if (index + 1 < segments.length) {
+        play(index + 1);
+        return;
+      }
+      utterance = undefined;
+      echoUntil = performance.now() + 350;
+      listeningStatus();
+      animate(/idle|repos/i);
+      scheduleListening();
+    };
+    voice.onend = next;
+    voice.onerror = next;
+    speechTimer = setTimeout(() => {
+      if (utterance !== voice) return;
+      utterance = undefined;
+      speech.cancel();
+      echoUntil = performance.now() + 350;
+      listeningStatus();
+      scheduleListening();
+    }, 20000);
+    try { speech.speak(voice); } catch { next(); }
+  }
+  play(0);
 }
 
 async function ask(text) {
@@ -237,7 +295,7 @@ async function ask(text) {
   if (!text || pending) return;
   touch();
   if (!automatic) stopListening();
-  speechPreview.textContent = "";
+  clearVoiceDraft();
   stopVoice();
   $("notice").textContent = "";
   $("question").value = "";
@@ -618,7 +676,13 @@ function startListening(auto = false) {
   active.continuous = auto;
   let ignoreSpeech = false;
   const voiceBusy = () => Boolean(pending || utterance || performance.now() < echoUntil);
-  active.onspeechstart = () => { ignoreSpeech = auto && voiceBusy(); };
+  active.onspeechstart = () => {
+    ignoreSpeech = auto && voiceBusy();
+    if (auto && !ignoreSpeech) sendVoiceDraftAfter(3200);
+  };
+  active.onspeechend = () => {
+    if (auto && !ignoreSpeech) sendVoiceDraftAfter();
+  };
   const startup = setTimeout(() => {
     if (recognition !== active) return;
     stopListening();
@@ -647,12 +711,15 @@ function startListening(auto = false) {
       const result = event.results[i];
       (result.isFinal ? finalized : interim).push(result[0].transcript);
     }
-    speechPreview.textContent = normalizeDictation(interim.join(" ").trim());
-    const text = normalizeDictation(finalized.join(" ").trim()).slice(0, 500);
-    if (!text) return;
-    speechPreview.textContent = "";
-    if (auto) ask(text);
-    else $("question").value = text;
+    const text = finalized.join(" ").trim();
+    if (auto) {
+      if (text) voiceDraft = [voiceDraft, text].filter(Boolean).join(" ").slice(0, 500);
+      speechPreview.textContent = normalizeDictation([voiceDraft, ...interim].join(" ").trim());
+      sendVoiceDraftAfter(interim.length ? 3200 : SPEECH_PAUSE_MS);
+    } else {
+      speechPreview.textContent = normalizeDictation(interim.join(" ").trim());
+      if (text) $("question").value = normalizeDictation(text).slice(0, 500);
+    }
   };
   active.onerror = (event) => {
     clearTimeout(startup);
@@ -664,7 +731,8 @@ function startListening(auto = false) {
     if (recognition !== active) return;
     recognition = undefined;
     audioActive = false;
-    speechPreview.textContent = "";
+    speechPreview.textContent = auto ? normalizeDictation(voiceDraft) : "";
+    if (auto) sendVoiceDraftAfter();
     if (["listening", "micStarting"].includes(state)) status("ready");
     if (auto) scheduleListening(150);
   };
@@ -689,7 +757,7 @@ $("mic").onclick = () => {
   }
 };
 $("question").addEventListener("input", () => {
-  if (automatic) speechPreview.textContent = "";
+  if (automatic) clearVoiceDraft();
 });
 $("finish").onclick = finish;
 $("reset").onclick = () => { hideSummary(); enterStandby(); };
