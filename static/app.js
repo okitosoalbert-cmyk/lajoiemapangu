@@ -62,6 +62,7 @@ try {
 const ABSENCE_MS = 5000;
 const SPEECH_PAUSE_MS = 1200;
 const REPLY_TARGET_MS = 1900;
+window.speechSynthesis?.getVoices();
 let voiceDraft = "", voiceDraftTimer, voiceRevision = 0;
 const microphone = {
   audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true},
@@ -298,7 +299,66 @@ function stopVoice() {
   const job = utterance;
   utterance = undefined;
   if (job.started) recentSpeech = {text: job.text, until: performance.now() + 550};
-  releaseCloudPlayback(job);
+  if (job.local) {
+    clearTimeout(job.watchdog);
+    window.speechSynthesis.cancel();
+  } else {
+    releaseCloudPlayback(job);
+  }
+}
+
+function finishVoice() {
+  stopVoice();
+  listeningStatus();
+  animate(/idle|repos/i);
+  scheduleListening();
+}
+
+function playLocalVoice(text, locale) {
+  const synth = window.speechSynthesis;
+  const tag = locale.toLowerCase();
+  const language = tag.split("-")[0];
+  const voices = synth?.getVoices().filter(voice => voice.localService) || [];
+  const voice = voices.find(item => item.lang.toLowerCase() === tag) ||
+    voices.find(item => item.lang.toLowerCase().split("-")[0] === language);
+  if (!voice || !window.SpeechSynthesisUtterance) return false;
+
+  const job = {local: true, text};
+  utterance = job;
+  const chunks = new Intl.Segmenter(locale, {granularity: "sentence"}).segment(text);
+  const segments = Array.from(chunks, ({segment}) => segment.trim()).filter(Boolean);
+  function failed() {
+    if (utterance !== job) return;
+    $("notice").textContent = lang === "fr"
+      ? "Lecture vocale indisponible. La réponse reste affichée."
+      : "Speech is unavailable. The written reply is still shown.";
+    finishVoice();
+  }
+  function play(index) {
+    if (utterance !== job) return;
+    clearTimeout(job.watchdog);
+    if (index >= segments.length) {
+      finishVoice();
+      return;
+    }
+    const clip = new SpeechSynthesisUtterance(segments[index]);
+    clip.voice = voice;
+    clip.lang = voice.lang;
+    clip.volume = Number($("volume").value);
+    clip.rate = .94;
+    clip.onstart = () => {
+      if (utterance !== job) return;
+      job.started = true;
+      status("speaking");
+      animate(/speak|talk|parl|mouth/i);
+    };
+    clip.onend = () => play(index + 1);
+    clip.onerror = failed;
+    job.watchdog = setTimeout(failed, Math.max(12000, segments[index].length * 130));
+    try { synth.speak(clip); } catch { failed(); }
+  }
+  play(0);
+  return true;
 }
 
 async function say(text, replyLang, spoken, reveal, replyDeadline) {
@@ -315,9 +375,10 @@ async function say(text, replyLang, spoken, reveal, replyDeadline) {
   const unavailable = () => {
     if (utterance !== job) return;
     stopVoice();
+    if (playLocalVoice(text, target)) return;
     $("notice").textContent = lang === "fr"
-      ? "Voix Gemini indisponible. La réponse reste affichée."
-      : "Gemini voice is unavailable. The written reply is still shown.";
+      ? "Voix Gemini indisponible et aucune voix locale pour cette langue. La réponse reste affichée."
+      : "Gemini voice is unavailable and there is no local voice for this language. The written reply is still shown.";
     listeningStatus();
     scheduleListening();
   };
@@ -345,10 +406,7 @@ async function say(text, replyLang, spoken, reveal, replyDeadline) {
     };
     job.audio.onended = () => {
       if (utterance !== job) return;
-      stopVoice();
-      listeningStatus();
-      animate(/idle|repos/i);
-      scheduleListening();
+      finishVoice();
     };
     job.audio.onerror = unavailable;
     await job.audio.play();
