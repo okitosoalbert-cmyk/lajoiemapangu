@@ -136,3 +136,5 @@ La carte s’ouvre sur une maquette 3D rapprochée du pavillon. **Trajet** cadre
 Ouvre `Emplacement-borne.txt` avec le Bloc-notes, inscris le code du pavillon où la borne sera installée (par exemple `CRX`, `FTX` ou `SITE`), enregistre et relance INNOVA. Laisse le fichier vide tant que l’emplacement reste à confirmer. La borne prend ce pavillon comme point de départ et indique « Vous êtes ici » dans la vue du trajet. Le départ représente le pavillon, pas une porte précise.
 
 Le QR **Emporter le trajet sur mon téléphone** ouvre directement un itinéraire piéton dans Google Maps. Le téléphone peut être sur un autre réseau. Google Maps calcule son propre trajet et requiert Internet.
+
+À la première ouverture du mode borne, **Détecter l’emplacement** propose le pavillon le plus proche quand la position est utilisable. Tu peux choisir un autre pavillon dans la liste. **Confirmer le pavillon** enregistre seulement son identifiant dans `Emplacement-borne.txt`, avec le navigateur ouvert sur le PC qui héberge INNOVA. La position brute sert au calcul dans le navigateur. Si tu déplaces la borne, ouvre de nouveau **Emplacement de la borne**.

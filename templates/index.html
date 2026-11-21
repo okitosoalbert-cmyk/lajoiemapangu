@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/static/style.css">
 <script src="/static/mascot.js" defer></script>
 <script src="/static/app.js?v={{ build }}" defer></script>
+<script src="/static/kiosk-location.js?v={{ build }}" type="module"></script>
 {% if has_glb %}<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>{% endif %}
 </head>
 <body data-kiosk-origin="{{ kiosk_origin }}">
@@ -54,8 +55,22 @@
   </div>
  </section>
 </main>
-<footer class="footer"><span>INNOVA · <span data-copy="prototype">PROTOTYPE U-GUIDE</span></span><button id="standby" data-copy="standby">Mode borne</button><a id="campusMap" target="_blank" rel="noopener" data-copy="officialMap">Carte officielle du campus</a></footer>
+<footer class="footer"><span>INNOVA · <span data-copy="prototype">PROTOTYPE U-GUIDE</span></span><button type="button" data-location-settings>Emplacement de la borne</button><button id="standby" data-copy="standby">Mode borne</button><a id="campusMap" target="_blank" rel="noopener" data-copy="officialMap">Carte officielle du campus</a></footer>
 <dialog id="summary"><div class="dialog-body"><h2 data-copy="recap">Récapitulatif</h2><p id="qrStatus"></p><img id="qr" alt="QR" hidden><button id="reset" class="send" data-copy="reset">Nouvelle session</button></div></dialog>
-<dialog id="idle" class="idle"><div class="dialog-body"><div class="mark">✦</div><h2>INNOVA</h2><p>Université d’Ottawa · University of Ottawa</p><button id="start" class="send">Touchez pour commencer / Touch to start</button><button id="camera" class="outline" data-copy="camera">Activer la détection de présence</button><p id="cameraStatus" aria-live="polite"></p><video id="preview" muted playsinline hidden></video></div></dialog>
+<dialog id="idle" class="idle"><div class="dialog-body"><div class="mark">✦</div><h2>INNOVA</h2><p>Université d’Ottawa · University of Ottawa</p><button id="start" class="send">Touchez pour commencer / Touch to start</button><button type="button" class="outline" data-location-settings>Emplacement de la borne</button><button id="camera" class="outline" data-copy="camera">Activer la détection de présence</button><p id="cameraStatus" aria-live="polite"></p><video id="preview" muted playsinline hidden></video></div></dialog>
+<dialog id="kiosk-location" aria-labelledby="location-heading">
+ <form class="dialog-body">
+  <h2 id="location-heading">Emplacement de la borne</h2>
+  <button id="location-detect" type="button" class="outline">Détecter l’emplacement</button>
+  <label for="location-building">Pavillon où se trouve la borne</label>
+  <select id="location-building" required></select>
+  <p id="location-status" role="status"></p>
+  <div id="location-preview"></div>
+  <div class="location-actions">
+   <button id="location-save" class="send" type="submit">Confirmer le pavillon</button>
+   <button id="location-close" class="outline" type="button">Fermer</button>
+  </div>
+ </form>
+</dialog>
 </body>
 </html>

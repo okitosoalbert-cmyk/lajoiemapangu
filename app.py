@@ -7,6 +7,7 @@ import re
 import secrets
 import sqlite3
 import time
+from tempfile import NamedTemporaryFile
 import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -33,7 +34,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r16"
+BUILD = "2026.11.21-r17"
 SPEECH_MODEL = "gemini-3.8-flash-tts"
 LANGUAGES = {item["locale"]: item["name"] for item in json.loads((ROOT / "static" / "languages.json").read_text(encoding="utf-8"))}
 INSTANCE = secrets.token_hex(6)
@@ -426,6 +427,34 @@ def no_cache(response):
 def home():
     return render_template("index.html", has_glb=(ROOT / "static" / "mascotte.glb").is_file(), build=BUILD, kiosk_origin=kiosk_origin())
 
+
+
+@app.post("/api/kiosk-location")
+def set_kiosk_location():
+    # Keep installation settings writable from the local kiosk browser only.
+    if (request.remote_addr not in {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
+        or not re.fullmatch(r"(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?", request.host)
+        or request.headers.get("Origin", request.host_url.rstrip("/")) != request.host_url.rstrip("/")):
+        return jsonify(error="local_setup_only"), 403
+    key = body().get("building")
+    if not isinstance(key, str) or key not in PLACES:
+        return jsonify(error="invalid_building"), 400
+    temporary = None
+    try:
+        with NamedTemporaryFile("w", encoding="utf-8", dir=ROOT, delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(key + "\n")
+        temporary.replace(ROOT / "Emplacement-borne.txt")
+    except OSError:
+        return jsonify(error="save_failed"), 503
+    finally:
+        if temporary:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+    kiosk_origin.cache_clear()
+    return jsonify(building=key)
 
 
 @app.get("/version")

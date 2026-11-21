@@ -140,7 +140,7 @@ function sendVoiceDraftAfter(lastSpeechAt = performance.now()) {
   voiceDraftTimer = setTimeout(() => {
     const text = normalizeDictation(voiceDraft).slice(0, 500);
     clearVoiceDraft();
-    if (!document.hidden && !$("idle").open && !$("summary").open &&
+    if (!document.hidden && !$("idle").open && !$("summary").open && !$("kiosk-location").open &&
         !pending && !utterance && !$("question").value.trim()) {
       ask(text, lastSpeechAt);
     }
@@ -166,7 +166,7 @@ function scheduleListening(delay = 500) {
   clearTimeout(listenTimer);
   if (!automatic || voiceBlocked) return;
   listenTimer = setTimeout(() => {
-    if (!document.hidden && !$("idle").open && !$("summary").open &&
+    if (!document.hidden && !$("idle").open && !$("summary").open && !$("kiosk-location").open &&
         !recognition) {
       startListening(true);
     }
@@ -648,7 +648,7 @@ function stopCamera() {
 }
 
 function wake() {
-  if ($("start").disabled || !$("idle").open) return;
+  if ($("start").disabled || !$("idle").open || $("kiosk-location").open) return;
   if (!automatic) stopCamera();
   $("idle").close();
   if (automatic) {
@@ -1079,3 +1079,10 @@ locale(speechLocale === "en-CA" ? "en" : "fr");
 setSound(sound);
 touch();
 if (new URLSearchParams(location.search).has("borne")) enterStandby();
+
+$("kiosk-location").addEventListener("innova:settings-open", () => {
+  if (pending || utterance) interruptForSpeech();
+  stopListening();
+  listeningStatus();
+});
+$("kiosk-location").addEventListener("close", () => scheduleListening());
