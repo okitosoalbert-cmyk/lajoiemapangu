@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import math
 import os
 import re
 import secrets
@@ -24,6 +25,25 @@ MAP = {
     "en": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 }
 VERIFIED = "2026-11-20"
+PLACES = json.loads((ROOT / "static" / "campus-map.json").read_text(encoding="utf-8"))["places"]
+DIRECTIONS = {
+    "fr": ("nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"),
+    "en": ("north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"),
+}
+
+
+def orientation(topic, lang):
+    place = PLACES[topic]
+    if topic == "crx":
+        return ("Le Carrefour des apprentissages (CRX) est le point de repère sur la carte."
+                if lang == "fr" else "Learning Crossroads (CRX) is the reference point on the map.")
+    x, y = place["point"]
+    ox, oy = PLACES["crx"]["point"]
+    sector = round(math.atan2(x - ox, oy - y) / (math.pi / 4)) % 8
+    direction = DIRECTIONS[lang][sector]
+    if lang == "fr":
+        return f"Depuis le CRX, cherche le repère {place[lang]} au {direction} sur la carte."
+    return f"From CRX, look {direction} on the map for {place[lang]}."
 
 
 def connect():
@@ -64,32 +84,70 @@ def format_fact(fact, lang):
     return result
 
 
-def select_with_gemini(question, catalog):
-    key = os.getenv("GEMINI_API_KEY")
-    if not key or os.getenv("INNOVA_GEMINI_SEND_QUESTIONS") != "1":
+def gemini_key():
+    if os.getenv("INNOVA_GEMINI_SEND_QUESTIONS") == "1":
+        return os.getenv("GEMINI_API_KEY")
+    if os.getenv("INNOVA_GEMINI_SEND_QUESTIONS") == "0" or os.getenv("GEMINI_API_KEY"):
+        return None
+    local_app_data = os.getenv("LOCALAPPDATA")
+    if local_app_data:
+        try:
+            return (Path(local_app_data) / "INNOVA" / "gemini-key.txt").read_text(encoding="utf-8-sig").strip()
+        except OSError:
+            pass
+    return None
+
+
+def answer_with_gemini(question, catalog, lang, topic):
+    key = gemini_key()
+    if not key:
         return None
 
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    glossary = {key: fact["aliases"] for key, fact in catalog.items()}
+    glossary = {}
+    for code, fact in catalog.items():
+        guidance = orientation(code, lang) if code in PLACES else fact[lang]
+        glossary[code] = {"aliases": fact["aliases"], "verified_guidance": guidance}
     payload = {
         "systemInstruction": {"parts": [{"text": (
-            "Classify the user question using only a topic ID from this campus glossary. "
-            "Return NONE if the question is ambiguous or asks for a detail other than "
-            "a building location or a general service link. Output only the ID or NONE. "
+            "You are Gee-Gee, a friendly guide at the University of Ottawa. Speak to one student. "
+            f"Reply in {'Canadian French using tu' if lang == 'fr' else 'plain Canadian English'}. "
+            "Use one or two brief, natural spoken sentences. Be practical and vary your phrasing. "
+            "Keep navigation relative to CRX when the given guidance does so. A map will appear automatically. "
+            "Use only the verified guidance for the selected topic. Never invent a turn, route, distance, "
+            "entrance, address, schedule, price, contact or URL. Do not repeat personal details. "
+            "If no topic fits, use topic NONE and give a friendly campus-related clarification without claiming any facts. "
+            + (f"The server already verified the topic; use {topic}. " if topic else "")
             + json.dumps(glossary, ensure_ascii=False)
         )}]},
         "contents": [{"parts": [{"text": question}]}],
-        "generationConfig": {"maxOutputTokens": 32, "thinkingConfig": {"thinkingBudget": 0}},
+        "generationConfig": {
+            "maxOutputTokens": 220,
+            "thinkingConfig": {"thinkingBudget": 0},
+            "responseMimeType": "application/json",
+            "responseSchema": {
+                "type": "OBJECT",
+                "properties": {
+                    "topic": {"type": "STRING", "enum": [*catalog, "NONE"]},
+                    "answer": {"type": "STRING"},
+                },
+                "required": ["topic", "answer"],
+            },
+        },
     }
     req = Request(f"https://generativelanguage.googleapis.com/v1beta/models/{quote(model, safe='')}:generateContent",
                   json.dumps(payload).encode(), {"Content-Type": "application/json", "x-goog-api-key": key})
     try:
-        with urlopen(req, timeout=2) as response:
+        with urlopen(req, timeout=5) as response:
             result = json.load(response)
-        selected = result["candidates"][0]["content"]["parts"][0]["text"].strip()
-        return selected if selected in catalog else None
-    except (OSError, URLError, ValueError, KeyError, IndexError, TypeError):
-        return None
+        draft = json.loads(result["candidates"][0]["content"]["parts"][0]["text"])
+        picked, answer = draft["topic"], draft["answer"].strip()
+        known_topic = picked in catalog and (topic is None or picked == topic)
+        if known_topic and 0 < len(answer) <= 400 and not re.search(r"https?://|\d", answer):
+            return picked, answer
+    except (OSError, URLError, ValueError, KeyError, IndexError, TypeError, AttributeError):
+        pass
+    return None
 
 
 def body():
@@ -139,9 +197,17 @@ def ask():
         return jsonify(lang=lang, text="De quel lieu ou service voulez-vous parler ?" if lang == "fr" else "Which place or service do you mean?", options=list(matches))
     if not matches and re.search(r"\b(bibliotheque|library)\b", text):
         return jsonify(lang=lang, text="Quelle bibliothèque cherchez-vous ?" if lang == "fr" else "Which library are you looking for?", options=["mrt"])
-    selected = next(iter(matches)) if matches else select_with_gemini(question, catalog)
+    selected = next(iter(matches), None)
+    natural = answer_with_gemini(question, catalog, lang, selected)
+    if natural:
+        selected, answer = natural
     if selected:
-        return jsonify(lang=lang, **format_fact(catalog[selected], lang))
+        result = format_fact(catalog[selected], lang)
+        if natural:
+            result["text"] = answer
+        elif selected in PLACES and not re.search(r"\b(adresse|address)\b", text):
+            result["text"] = orientation(selected, lang)
+        return jsonify(lang=lang, **result)
     return jsonify(lang=lang, text="Je n’ai pas de réponse vérifiée pour cette question. Consultez le site officiel de l’Université d’Ottawa." if lang == "fr" else "I don’t have a verified answer to this question. Check the University of Ottawa’s official website.", source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en")
 
 
@@ -173,7 +239,10 @@ def recap(token):
     if row is None or row[1] <= time.time():
         return render_template("recap.html", lang="fr", items=[]), 410
     catalog = facts()
-    return render_template("recap.html", lang=row[2], items=[format_fact(catalog[key], row[2]) for key in json.loads(row[0]) if key in catalog])
+    return render_template("recap.html", lang=row[2], items=[
+        dict(format_fact(catalog[key], row[2]), text=orientation(key, row[2]) if key in PLACES else catalog[key][row[2]])
+        for key in json.loads(row[0]) if key in catalog
+    ])
 
 
 initialize()
@@ -189,6 +258,7 @@ if __name__ == "__main__":
                 return
             super().log_request(code, size)
 
+    print("Gemini configured." if gemini_key() else "INNOVA local mode.")
     app.run(
         host=os.getenv("INNOVA_HOST", "127.0.0.1"),
         port=int(os.getenv("INNOVA_PORT", "5100")),
