@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="{{ lang }}"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INNOVA</title><link rel="stylesheet" href="/static/style.css">
+<main class="receipt">
+<h1>{{ "Votre récapitulatif" if lang == "fr" else "Your recap" }}</h1>
+{% for item in items %}<article><p>{{ item.text }}</p><a href="{{ item.source }}">{{ "Source officielle" if lang == "fr" else "Official source" }}</a>
+{% if item.route %} · <a href="{{ item.route }}">{{ "Itinéraire" if lang == "fr" else "Directions" }}</a>{% endif %}</article>
+{% else %}<p>Ce lien a expiré ou a déjà été utilisé. / This link has expired or has already been used.</p>{% endfor %}
+</main></html>
