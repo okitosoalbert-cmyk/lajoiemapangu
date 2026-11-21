@@ -190,7 +190,8 @@ def gemini_notice(reason, lang):
         "quota": ("Le quota Gemini est atteint. Réessaie plus tard ou vérifie tes limites dans Google AI Studio.", "Gemini’s quota is exhausted. Try later or check your limits in Google AI Studio."),
         "model": ("Ce modèle Gemini est inaccessible avec ta clé. Vérifie le modèle dans Google AI Studio.", "This Gemini model is unavailable with your key. Check the model in Google AI Studio."),
         "network": ("INNOVA n’a pas pu joindre Gemini. Vérifie ta connexion Internet et réessaie.", "INNOVA could not reach Gemini. Check your connection and try again."),
-        "response": ("Gemini n’a pas renvoyé de réponse exploitable. Réessaie avec une question courte.", "Gemini did not return a usable answer. Try a short question."),
+        "response": ("Gemini n’a pas renvoyé de réponse exploitable. Essaie Tester-Gemini.bat pour vérifier la connexion.", "Gemini did not return a usable answer. Run Tester-Gemini.bat to check the connection."),
+        "blocked": ("Gemini a bloqué cette demande. Tu peux essayer une autre formulation.", "Gemini blocked this request. Try a different phrasing."),
     }
     return messages[reason][lang == "en"]
 
@@ -213,76 +214,30 @@ def gemini_http_error(error):
     return "network" if error.code >= 500 else "response"
 
 
-def answer_with_gemini(question, catalog, lang, topic, previous, *, allow_general=False, exchange=None):
-    key = gemini_key()
-    if not key:
-        return None
-
+def generate_gemini(key, instruction, contents, schema=None):
     model = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
-    glossary = {}
-    relevant = {} if allow_general else {topic: catalog[topic]} if topic else catalog
-    for code, fact in relevant.items():
-        guidance = orientation(code, lang, fact) if code in PLACES else fact[lang]
-        glossary[code] = {"aliases": fact["aliases"], "verified_guidance": guidance}
-    choices = [*relevant, "NONE"]
-    contents = []
-    if allow_general:
-        choices.append("GENERAL")
-        if isinstance(exchange, dict):
-            question_before, answer_before = exchange.get("question"), exchange.get("answer")
-            if all(isinstance(value, str) and 0 < len(value) <= limit
-                   for value, limit in ((question_before, 500), (answer_before, 640))):
-                contents.extend([
-                    {"role": "user", "parts": [{"text": question_before}]},
-                    {"role": "model", "parts": [{"text": json.dumps(
-                        {"topic": "GENERAL", "answer": answer_before}, ensure_ascii=False)}]},
-                ])
-    contents.append({"role": "user", "parts": [{"text": question}]})
+    config = {"maxOutputTokens": 400}
+    if schema:
+        config.update(responseMimeType="application/json", responseSchema=schema)
     payload = {
-        "systemInstruction": {"parts": [{"text": (
-            "You are Gee-Gee, a friendly guide at the University of Ottawa. Speak to one student. "
-            f"Reply in {'Canadian French using tu' if lang == 'fr' else 'plain Canadian English'}. "
-            "Use two or three natural spoken sentences when the facts warrant it. Start with a direct answer, then give a concrete useful next step. Be warm without filler or generic praise. "
-            "Keep navigation relative to CRX when the given guidance does so. A map will appear automatically. "
-            "Use only the verified guidance for the selected topic. Never invent a turn, route, distance, "
-            "entrance, address, schedule, price, contact or URL. Do not repeat personal details. "
-            "For specific uOttawa information, use one verified topic or NONE. Never use GENERAL for uOttawa-specific facts. "
-            "If GENERAL is available, use it to answer ordinary questions, give study tips, explain a concept, or continue casual conversation. "
-            "Answer naturally and directly, with a brief example when useful. Numbers are fine for GENERAL. "
-            "Avoid guessing live facts, like the weather or current opening hours. Do not claim to have searched the web. "
-            "Use NONE if you cannot answer reliably. "
-            + (f"The server already verified the topic; use {topic}. " if topic else "")
-            + (f"The previous topic was {previous}. Use it only if this question clearly follows up. " if previous else "")
-            + json.dumps(glossary, ensure_ascii=False)
-        )}]},
+        "systemInstruction": {"parts": [{"text": instruction}]},
         "contents": contents,
-        "generationConfig": {
-            "maxOutputTokens": 320,
-            "responseMimeType": "application/json",
-            "responseSchema": {
-                "type": "OBJECT",
-                "properties": {
-                    "topic": {"type": "STRING", "enum": choices},
-                    "answer": {"type": "STRING"},
-                },
-                "required": ["topic", "answer"],
-            },
-        },
+        "generationConfig": config,
     }
     req = Request(f"https://generativelanguage.googleapis.com/v1beta/models/{quote(model, safe='')}:generateContent",
                   json.dumps(payload).encode(), {"Content-Type": "application/json", "x-goog-api-key": key})
     try:
         with urlopen(req, timeout=7) as response:
             result = json.load(response)
-        draft = json.loads(result["candidates"][0]["content"]["parts"][0]["text"])
-        picked, answer = draft["topic"], draft["answer"].strip()
-        if picked == "GENERAL" and allow_general and topic is None and 0 < len(answer) <= 640 and not re.search(r"https?://", answer):
-            return picked, answer
-        known_topic = picked in relevant
-        if known_topic and 0 < len(answer) <= 400 and not re.search(r"https?://|\d", answer):
-            return picked, answer
-        if picked == "NONE":
-            return None
+        if result.get("promptFeedback", {}).get("blockReason"):
+            raise GeminiError("blocked")
+        candidate = result["candidates"][0]
+        if candidate.get("finishReason") in {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST"}:
+            raise GeminiError("blocked")
+        parts = candidate["content"]["parts"]
+        answer = "".join(part.get("text", "") for part in parts if not part.get("thought")).strip()
+        if answer:
+            return answer
         raise GeminiError("response")
     except HTTPError as error:
         raise GeminiError(gemini_http_error(error)) from None
@@ -290,6 +245,69 @@ def answer_with_gemini(question, catalog, lang, topic, previous, *, allow_genera
         raise GeminiError("network") from None
     except (ValueError, KeyError, IndexError, TypeError, AttributeError):
         raise GeminiError("response") from None
+
+
+def answer_with_gemini(question, catalog, lang, topic, previous, *, allow_general=False, exchange=None):
+    key = gemini_key()
+    if not key:
+        return None
+    language_name = "Canadian French using tu" if lang == "fr" else "plain Canadian English"
+    contents = []
+    if allow_general and isinstance(exchange, dict):
+        question_before, answer_before = exchange.get("question"), exchange.get("answer")
+        if all(isinstance(value, str) and 0 < len(value) <= limit
+               for value, limit in ((question_before, 500), (answer_before, 640))):
+            contents.extend([
+                {"role": "user", "parts": [{"text": question_before}]},
+                {"role": "model", "parts": [{"text": answer_before}]},
+            ])
+    contents.append({"role": "user", "parts": [{"text": question}]})
+
+    if allow_general:
+        instruction = (
+            f"You are Gee-Gee, a friendly guide. Reply in {language_name} in one to three short sentences. "
+            "Answer the student's everyday question directly and naturally. Use a brief example if useful. "
+            "For arithmetic give the answer as a number. Avoid Markdown, links, personal information and unverified "
+            "uOttawa facts or live information. If information is missing, ask a short follow-up question. "
+            "Write the spoken reply as plain text."
+        )
+        answer = generate_gemini(key, instruction, contents)
+        if len(answer) <= 640 and not re.search(r"https?://", answer):
+            return "GENERAL", answer
+        raise GeminiError("response")
+
+    relevant = {topic: catalog[topic]} if topic else catalog
+    glossary = {
+        code: {"aliases": fact["aliases"], "guidance": orientation(code, lang, fact) if code in PLACES else fact[lang]}
+        for code, fact in relevant.items()
+    }
+    instruction = (
+        f"You are Gee-Gee, a friendly guide at the University of Ottawa. Reply in {language_name}. "
+        "Use up to three natural sentences. For campus facts use only the verified guidance below. "
+        "A map appears for locations. Never invent a route, address, schedule, price, contact or URL. "
+        "Use topic NONE when none of the entries can answer the question. "
+        + (f"The topic is {topic}. " if topic else "")
+        + (f"The previous topic was {previous}. Use it only for a clear follow-up. " if previous else "")
+        + json.dumps(glossary, ensure_ascii=False)
+    )
+    schema = {
+        "type": "OBJECT",
+        "properties": {
+            "topic": {"type": "STRING", "enum": [*relevant, "NONE"]},
+            "answer": {"type": "STRING"},
+        },
+        "required": ["topic", "answer"],
+    }
+    try:
+        draft = json.loads(generate_gemini(key, instruction, contents, schema))
+        picked, answer = draft["topic"], draft["answer"].strip()
+        if picked == "NONE":
+            return None
+        if picked in relevant and 0 < len(answer) <= 400 and not re.search(r"https?://|\d", answer):
+            return picked, answer
+    except (ValueError, KeyError, TypeError, AttributeError):
+        pass
+    raise GeminiError("response")
 
 
 def student_card_answer(text, lang, catalog):
@@ -396,7 +414,7 @@ def ask():
                                  if lang == "fr" else " Open directions for an estimate of the walking time.")
         return jsonify(lang=lang, **response)
     campus_inquiry = bool(selected or matches or re.search(
-        r"\b(uottawa|universite d ottawa|university of ottawa|campus|pavillon|library|bibliotheque|residence|uozone)\b", text
+        r"\b(uottawa|universite d ottawa|university of ottawa|campus|pavillon|library|bibliotheque|residence|uozone|releve de notes|transcripts?|t2202|droits universitaires|tuition)\b", text
     ))
     if campus_inquiry and re.search(r"\b(horaire[s]?|ouvert[es]*|ouvr[ei]\w*|hours|open|close[s]?|frais|prix|fee[s]?|deadline[s]?|ferme[es]?|holiday[s]?|date limite|aujourd hui|today|tomorrow|demain)\b", text):
         message = ("Cette information peut changer. Je ne peux pas la confirmer ici. Vérifiez la page officielle.",
@@ -472,9 +490,12 @@ def ask():
     official = lookup_uottawa(question, lang)
     if official:
         return jsonify(lang=lang, **official, gemini_notice=gemini_notice(gemini_status, lang) if gemini_status else None)
-    if not campus_inquiry and gemini_status:
-        return jsonify(lang=lang, text=gemini_notice(gemini_status, lang))
-    return jsonify(lang=lang, text="Je n’ai pas trouvé ce que tu cherches. Donne-moi le nom du pavillon ou dis-moi si tu cherches un service, un logement ou de l’aide pour tes cours." if lang == "fr" else "I couldn’t find what you’re looking for. Tell me the building name, or whether you need a student service, housing or help with classes.", source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en")
+    if not campus_inquiry:
+        return jsonify(lang=lang, text=gemini_notice(gemini_status or "response", lang))
+    guide = ("Je ne trouve pas de réponse vérifiée pour cette question sur le campus. Essaie le répertoire officiel d’uOttawa."
+             if lang == "fr" else "I can’t find a verified campus answer for this question. Try uOttawa’s official site.")
+    return jsonify(lang=lang, text=guide, source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en",
+                   gemini_notice=gemini_notice(gemini_status, lang) if gemini_status else None)
 
 
 @app.post("/api/transfer")
