@@ -64,24 +64,32 @@ def format_fact(fact, lang):
     return result
 
 
-def select_with_gemini(matches, terms):
+def select_with_gemini(question, catalog):
     key = os.getenv("GEMINI_API_KEY")
-    if not key:
-        return matches[0] if len(matches) == 1 else None
-    # Only reviewed aliases and topic IDs leave the server.
+    if not key or os.getenv("INNOVA_GEMINI_SEND_QUESTIONS") != "1":
+        return None
+
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    payload = {"contents": [{"parts": [{"text": f"Select the best campus topic ID or NONE. Reply with the ID only. IDs: {matches}. Matched glossary terms: {terms}."}]}], "generationConfig": {"maxOutputTokens": 32, "thinkingConfig": {"thinkingBudget": 0}}}
+    glossary = {key: fact["aliases"] for key, fact in catalog.items()}
+    payload = {
+        "systemInstruction": {"parts": [{"text": (
+            "Classify the user question using only a topic ID from this campus glossary. "
+            "Return NONE if the question is ambiguous or asks for a detail other than "
+            "a building location or a general service link. Output only the ID or NONE. "
+            + json.dumps(glossary, ensure_ascii=False)
+        )}]},
+        "contents": [{"parts": [{"text": question}]}],
+        "generationConfig": {"maxOutputTokens": 32, "thinkingConfig": {"thinkingBudget": 0}},
+    }
     req = Request(f"https://generativelanguage.googleapis.com/v1beta/models/{quote(model, safe='')}:generateContent",
                   json.dumps(payload).encode(), {"Content-Type": "application/json", "x-goog-api-key": key})
     try:
         with urlopen(req, timeout=2) as response:
             result = json.load(response)
         selected = result["candidates"][0]["content"]["parts"][0]["text"].strip()
-        if selected in matches:
-            return selected
-    except (OSError, URLError, ValueError, KeyError, IndexError):
-        pass
-    return matches[0] if len(matches) == 1 else None
+        return selected if selected in catalog else None
+    except (OSError, URLError, ValueError, KeyError, IndexError, TypeError):
+        return None
 
 
 def body():
@@ -131,10 +139,9 @@ def ask():
         return jsonify(lang=lang, text="De quel lieu ou service voulez-vous parler ?" if lang == "fr" else "Which place or service do you mean?", options=list(matches))
     if not matches and re.search(r"\b(bibliotheque|library)\b", text):
         return jsonify(lang=lang, text="Quelle bibliothèque cherchez-vous ?" if lang == "fr" else "Which library are you looking for?", options=["mrt"])
-    if matches:
-        selected = select_with_gemini(list(matches), sorted({term for words in matches.values() for term in words}))
-        if selected:
-            return jsonify(lang=lang, **format_fact(catalog[selected], lang))
+    selected = next(iter(matches)) if matches else select_with_gemini(question, catalog)
+    if selected:
+        return jsonify(lang=lang, **format_fact(catalog[selected], lang))
     return jsonify(lang=lang, text="Je n’ai pas de réponse vérifiée pour cette question. Consultez le site officiel de l’Université d’Ottawa." if lang == "fr" else "I don’t have a verified answer to this question. Check the University of Ottawa’s official website.", source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en")
 
 
