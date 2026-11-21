@@ -246,12 +246,13 @@ async function ask(text) {
   pending = controller;
   $("send").disabled = true;
   status("working");
-  const timeout = setTimeout(() => controller.abort(), 11000);
+  const timeout = setTimeout(() => controller.abort(), 12500);
   try {
     const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation, exchange: generalExchange}), signal: controller.signal});
     if (!response.ok) throw Error("Request failed");
     const result = await response.json();
     if (pending !== controller) return;
+    if (result.gemini_notice) $("notice").textContent = result.gemini_notice;
     generalExchange = result.general ? {question: text, answer: result.text} : undefined;
     if (result.general) lastTopic = undefined;
     confirmation = result.option_queries && result.options?.length === 1 ? result.options[0] : undefined;
