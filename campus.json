@@ -1184,5 +1184,480 @@
     "en": "For your first student card, submit a photo once you’ve been admitted and enrolled in courses. After you get the confirmation email, pick it up at the uOttawa Card Service, 90 University, room 145. Bring valid government-issued ID.",
     "source_fr": "https://www.uottawa.ca/vie-campus/carte-etudiante/obtenir-carte-etudiante",
     "source": "https://www.uottawa.ca/campus-life/student-card/get-student-card"
+  },
+  {
+    "id": "history-overview",
+    "history": true,
+    "aliases": [
+      "histoire de l universite",
+      "histoire de uottawa",
+      "histoire d uottawa",
+      "histoire du campus",
+      "history of uottawa",
+      "university of ottawa history",
+      "history of the university",
+      "historique de l universite",
+      "raconte moi ton histoire",
+      "raconte moi l histoire de uottawa"
+    ],
+    "fr": "Tout commence en 1848 avec le Collège Bytown, un collège bilingue. Une charte royale lui donne le statut d’université en 1866. Un incendie détruit le bâtiment principal en 1903, et l’Université devient une institution laïque en 1965. Tu peux me demander ce qui s’est passé à chacune de ces dates.",
+    "en": "It began in 1848 as the bilingual College of Bytown. A royal charter granted university status in 1866. Fire destroyed the main building in 1903, and the University became a secular institution in 1965. Ask me about any of those milestones.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/information-archives-management-service/history-uottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/service-gestion-information-archives/histoire-uottawa",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa Archives",
+      "fr": "Archives d’uOttawa"
+    }
+  },
+  {
+    "id": "history-foundation",
+    "history": true,
+    "aliases": [
+      "college bytown",
+      "college de bytown",
+      "college of bytown",
+      "fondation de uottawa",
+      "fondation de l universite",
+      "founded uottawa",
+      "university founded",
+      "uottawa founded",
+      "fondation uottawa",
+      "qui a fonde uottawa",
+      "ouverture de l universite"
+    ],
+    "fr": "Les Oblats de Marie-Immaculée ont fondé le Collège Bytown en 1848. On y enseignait déjà en français et en anglais. En 1866, une charte royale a donné au Collège d’Ottawa le statut d’université.",
+    "en": "The Oblates of Mary Immaculate founded the College of Bytown in 1848. Students studied in French and English from the beginning. In 1866, a royal charter gave the renamed College of Ottawa university status.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/information-archives-management-service/history-uottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/service-gestion-information-archives/histoire-uottawa",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa Archives",
+      "fr": "Archives d’uOttawa"
+    },
+    "history_group": "university",
+    "history_years": [
+      1848
+    ]
+  },
+  {
+    "id": "history-charters",
+    "history": true,
+    "aliases": [
+      "charte royale",
+      "charte pontificale",
+      "statut d universite",
+      "royal charter",
+      "pontifical charter",
+      "university status"
+    ],
+    "fr": "Le Collège d’Ottawa a reçu sa charte royale en 1866, ce qui lui a donné le statut d’université. Il a reçu une charte pontificale en 1889.",
+    "en": "The College of Ottawa received its royal charter in 1866, granting it university status. It received a pontifical charter in 1889.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/information-archives-management-service/history-uottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/service-gestion-information-archives/histoire-uottawa",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa Archives",
+      "fr": "Archives d’uOttawa"
+    },
+    "history_group": "university",
+    "history_years": [
+      1866,
+      1889
+    ]
+  },
+  {
+    "id": "history-secular",
+    "history": true,
+    "aliases": [
+      "universite laique",
+      "devenue laique",
+      "secular institution",
+      "secular university"
+    ],
+    "fr": "En 1965, les Oblats ont cédé l’administration de l’Université d’Ottawa. Elle est devenue une institution laïque financée par la province.",
+    "en": "In 1965 the Oblates relinquished administration of the University of Ottawa. It became a secular institution funded by the province.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/information-archives-management-service/history-uottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/service-gestion-information-archives/histoire-uottawa",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa Archives",
+      "fr": "Archives d’uOttawa"
+    },
+    "history_group": "university",
+    "history_years": [
+      1965
+    ]
+  },
+  {
+    "id": "history-fire",
+    "history": true,
+    "aliases": [
+      "incendie de 1903",
+      "incendie de l universite",
+      "grand incendie",
+      "fire of 1903",
+      "1903 fire",
+      "university fire",
+      "feu de 1903"
+    ],
+    "fr": "Le 2 décembre 1903, un incendie a détruit le bâtiment principal de l’Université et fait trois victimes. Les Oblats ont organisé des locaux temporaires pour sauver l’année scolaire. Le pavillon Tabaret se trouve en partie sur le site du bâtiment détruit.",
+    "en": "On December 2, 1903, a fire destroyed the University’s main building and killed three people. The Oblates organized temporary facilities to save the academic year. Tabaret Hall stands partly on the site of the destroyed building.",
+    "source": "https://www.uottawa.ca/about-us/sites/g/files/bhrskd336/files/2022-09/fire_1903_0.pdf",
+    "source_fr": "https://www.uottawa.ca/about-us/sites/g/files/bhrskd336/files/2022-09/fire_1903_0.pdf",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "Archival account of the 1903 fire",
+      "fr": "Récit d’archives de l’incendie de 1903"
+    },
+    "history_group": "university",
+    "history_years": [
+      1903
+    ]
+  },
+  {
+    "id": "history-first-degree",
+    "history": true,
+    "aliases": [
+      "thomas foran",
+      "premier diplome",
+      "premier baccalaureat",
+      "first degree",
+      "first bachelor s degree"
+    ],
+    "fr": "Le 9 avril 1872, l’Université d’Ottawa a décerné son premier baccalauréat à Thomas Foran.",
+    "en": "On April 9, 1872, the University of Ottawa awarded its first bachelor’s degree to Thomas Foran.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/information-archives-management-service/history-uottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/service-gestion-information-archives/histoire-uottawa",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa Archives",
+      "fr": "Archives d’uOttawa"
+    },
+    "history_group": "university",
+    "history_years": [
+      1872
+    ]
+  },
+  {
+    "id": "history-tabaret",
+    "history": true,
+    "aliases": [
+      "histoire de tabaret",
+      "histoire du pavillon tabaret",
+      "construction de tabaret",
+      "nom du pavillon tabaret",
+      "history of tabaret",
+      "tabaret hall named",
+      "joseph henri tabaret"
+    ],
+    "fr": "Le pavillon Tabaret porte depuis 1971 le nom du père Joseph-Henri Tabaret. Il est considéré comme un bâtisseur de l’Université, car le collège a obtenu le statut d’université sous sa direction.",
+    "en": "Tabaret Hall was named in 1971 in honour of Father Joseph-Henri Tabaret. He is considered a builder of the University because the college gained university status under his leadership.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/building/tabaret-hall",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-tabaret",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "Official Tabaret Hall history",
+      "fr": "Fiche officielle du pavillon Tabaret"
+    },
+    "history_group": "university",
+    "history_years": [
+      1971
+    ]
+  },
+  {
+    "id": "history-sports",
+    "history": true,
+    "aliases": [
+      "victoires des gee gees",
+      "victoires de l universite",
+      "grandes victoires",
+      "palmares des gee gees",
+      "palmares sportif",
+      "championnats des gee gees",
+      "titres des gee gees",
+      "gee gees championships",
+      "gee gees victories",
+      "sporting achievements",
+      "sports victories",
+      "histoire sportive"
+    ],
+    "fr": "Les Gee-Gees ont remporté la Coupe Vanier de football en 1975 et en 2000. L’équipe féminine de rugby a gagné le championnat national en 2017, et celle de soccer a remporté le titre provincial en 2026.",
+    "en": "The Gee-Gees won the Vanier Cup in football in 1975 and 2000. The women’s rugby team won the national championship in 2017, and the women’s soccer team won the provincial title in 2026.",
+    "source": "https://www.uottawa.ca/en/news-all/panda-50-games-rivalry-and-antics",
+    "source_fr": "https://www.uottawa.ca/fr/toutes-nouvelles/panda-50-parties-rivalite-coups-pendables",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s football history",
+      "fr": "L’histoire du football à uOttawa"
+    },
+    "history_links": {
+      "en": [
+        {
+          "title": "Rugby national title",
+          "url": "https://www.uottawa.ca/en/news-all/join-scrum-uottawa-hosts-womens-rugby-national-championships"
+        },
+        {
+          "title": "Soccer provincial title",
+          "url": "https://www.uottawa.ca/campus-life/news-all/gee-gees-womens-soccer-team-wins-provincial-championship"
+        }
+      ],
+      "fr": [
+        {
+          "title": "Titre national de rugby",
+          "url": "https://www.uottawa.ca/fr/toutes-nouvelles/championnat-national-rugby-feminin-luniversite-dottawa-plongez-melee"
+        },
+        {
+          "title": "Titre provincial de soccer",
+          "url": "https://www.uottawa.ca/vie-campus/toutes-nouvelles/lequipe-soccer-feminin-decroche-titre-provincial"
+        }
+      ]
+    }
+  },
+  {
+    "id": "history-vanier",
+    "history": true,
+    "aliases": [
+      "coupe vanier",
+      "vanier cup",
+      "football championnat national",
+      "football national championship",
+      "titre national de football"
+    ],
+    "fr": "Les Gee-Gees ont gagné la Coupe Vanier, le championnat canadien de football universitaire, en 1975 et en 2000. En 1975, ils ont aussi remporté le Match Panda.",
+    "en": "The Gee-Gees won the Vanier Cup, Canada’s university football championship, in 1975 and 2000. They also won the Panda Game in 1975.",
+    "source": "https://www.uottawa.ca/en/news-all/panda-50-games-rivalry-and-antics",
+    "source_fr": "https://www.uottawa.ca/fr/toutes-nouvelles/panda-50-parties-rivalite-coups-pendables",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s Panda Game and Vanier Cup history",
+      "fr": "L’histoire du Match Panda et de la Coupe Vanier"
+    },
+    "history_group": "vanier",
+    "history_years": [
+      1975,
+      2000
+    ]
+  },
+  {
+    "id": "history-panda",
+    "history": true,
+    "aliases": [
+      "match panda",
+      "panda game",
+      "trophee pedro",
+      "pedro the panda",
+      "rivalite avec carleton",
+      "rivalry with carleton"
+    ],
+    "fr": "Le Match Panda oppose les Gee-Gees aux Ravens de Carleton depuis 1955. Pedro est le nom de son trophée. Le match a été interrompu après 1998 et a repris en 2013 avec le retour du programme de football de Carleton.",
+    "en": "The Panda Game between the Gee-Gees and Carleton Ravens began in 1955. Its trophy is called Pedro. The game stopped after 1998 and returned in 2013 when Carleton brought back its football program.",
+    "source": "https://www.uottawa.ca/en/news-all/panda-50-games-rivalry-and-antics",
+    "source_fr": "https://www.uottawa.ca/fr/toutes-nouvelles/panda-50-parties-rivalite-coups-pendables",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s Panda Game history",
+      "fr": "L’histoire du Match Panda à uOttawa"
+    },
+    "history_group": "panda",
+    "history_years": [
+      1955,
+      1998,
+      2013
+    ],
+    "year_results": {
+      "1957": {
+        "fr": "Au Match Panda de 1957, les Gee-Gees ont battu Carleton 44 à 0.",
+        "en": "At the 1957 Panda Game, the Gee-Gees beat Carleton 44–0."
+      },
+      "1958": {
+        "fr": "Au Match Panda de 1958, les Gee-Gees ont battu Carleton 25 à 0.",
+        "en": "At the 1958 Panda Game, the Gee-Gees beat Carleton 25–0."
+      },
+      "1959": {
+        "fr": "En 1959, Ottawa a remporté le Match Panda 42 à 0 face à Carleton.",
+        "en": "In 1959, Ottawa won the Panda Game 42–0 against Carleton."
+      },
+      "1975": {
+        "fr": "Les Gee-Gees ont remporté le Match Panda en 1975. Ils ont aussi gagné la Coupe Vanier cette année-là.",
+        "en": "The Gee-Gees won the Panda Game in 1975. They also won the Vanier Cup that year."
+      },
+      "1979": {
+        "fr": "Au Match Panda de 1979, les Gee-Gees ont gagné 28 à 16.",
+        "en": "The Gee-Gees won the 1979 Panda Game 28–16."
+      },
+      "1998": {
+        "fr": "En 1998, les Gee-Gees ont remporté le Match Panda 59 à 17. C’est le dernier match avant l’interruption qui a duré jusqu’en 2013.",
+        "en": "The Gee-Gees won the 1998 Panda Game 59–17. It was the last game until the series returned in 2013."
+      },
+      "2013": {
+        "fr": "Pour le retour du Match Panda en 2013, les Gee-Gees ont battu Carleton 35 à 10.",
+        "en": "When the Panda Game returned in 2013, the Gee-Gees beat Carleton 35–10."
+      }
+    }
+  },
+  {
+    "id": "history-panda-wins",
+    "history": true,
+    "aliases": [
+      "victoires au panda",
+      "victoire au panda",
+      "victoires match panda",
+      "panda game wins"
+    ],
+    "fr": "Au Match Panda, Ottawa a battu Carleton 44 à 0 en 1957 et 25 à 0 en 1958. Au retour du Match Panda en 2013, les Gee-Gees l’ont remporté 35 à 10.",
+    "en": "At the Panda Game, Ottawa beat Carleton 44–0 in 1957 and 25–0 in 1958. When the game returned in 2013, the Gee-Gees won 35–10.",
+    "source": "https://www.uottawa.ca/en/news-all/panda-50-games-rivalry-and-antics",
+    "source_fr": "https://www.uottawa.ca/fr/toutes-nouvelles/panda-50-parties-rivalite-coups-pendables",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s Panda Game history",
+      "fr": "L’histoire du Match Panda à uOttawa"
+    },
+    "history_group": "panda",
+    "history_years": [
+      1957,
+      1958,
+      2013
+    ]
+  },
+  {
+    "id": "history-panda-2014",
+    "history": true,
+    "aliases": [
+      "panda 2014",
+      "match panda 2014",
+      "panda game 2014"
+    ],
+    "fr": "En 2014, les Gee-Gees ont perdu le Match Panda 33 à 31 contre les Ravens de Carleton. Les Ravens ont marqué le touché décisif sur un jeu de 55 verges à la fin du match.",
+    "en": "In 2014 the Gee-Gees lost the Panda Game 33–31 to Carleton. The Ravens scored the winning touchdown on a last-second 55-yard play.",
+    "source": "https://www.uottawa.ca/en/news-all/panda-50-games-rivalry-and-antics",
+    "source_fr": "https://www.uottawa.ca/fr/toutes-nouvelles/panda-50-parties-rivalite-coups-pendables",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s Panda Game history",
+      "fr": "L’histoire du Match Panda à uOttawa"
+    },
+    "history_group": "panda",
+    "history_years": [
+      2014
+    ]
+  },
+  {
+    "id": "history-panda-2017",
+    "history": true,
+    "aliases": [
+      "panda 2017",
+      "match panda 2017",
+      "panda game 2017"
+    ],
+    "fr": "En 2017, Carleton a battu les Gee-Gees 33 à 30 en double prolongation au Match Panda.",
+    "en": "In 2017, Carleton beat the Gee-Gees 33–30 in double overtime at the Panda Game.",
+    "source": "https://www.uottawa.ca/en/news-all/panda-50-games-rivalry-and-antics",
+    "source_fr": "https://www.uottawa.ca/fr/toutes-nouvelles/panda-50-parties-rivalite-coups-pendables",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s Panda Game history",
+      "fr": "L’histoire du Match Panda à uOttawa"
+    },
+    "history_group": "panda",
+    "history_years": [
+      2017
+    ]
+  },
+  {
+    "id": "history-revers",
+    "history": true,
+    "aliases": [
+      "defaites des gee gees",
+      "defaite des gee gees",
+      "revers des gee gees",
+      "revers de l universite",
+      "defaites au panda",
+      "panda game defeats",
+      "gee gees losses",
+      "gee gees defeats",
+      "historical setbacks",
+      "moments difficiles de l universite",
+      "ont ils perdu le panda",
+      "ottawa a perdu le panda"
+    ],
+    "fr": "Deux défaites marquantes au Match Panda ont eu lieu contre Carleton. En 2014, Ottawa a perdu 33 à 31 sur un touché en fin de match. En 2017, la défaite a été de 33 à 30 en double prolongation. Dans l’histoire de l’Université, l’incendie de 1903 est aussi un événement marquant.",
+    "en": "Two notable Panda Game defeats came against Carleton. In 2014, Ottawa lost 33–31 on a late touchdown. In 2017, Carleton won 33–30 in double overtime. The 1903 fire was also a major setback in the University’s history.",
+    "source": "https://www.uottawa.ca/en/news-all/panda-50-games-rivalry-and-antics",
+    "source_fr": "https://www.uottawa.ca/fr/toutes-nouvelles/panda-50-parties-rivalite-coups-pendables",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s Panda Game history",
+      "fr": "L’histoire du Match Panda à uOttawa"
+    },
+    "history_group": "panda",
+    "history_years": [
+      2014,
+      2017
+    ],
+    "history_links": {
+      "en": [
+        {
+          "title": "University archives",
+          "url": "https://www.uottawa.ca/about-us/administration-services/information-archives-management-service/history-uottawa"
+        }
+      ],
+      "fr": [
+        {
+          "title": "Archives de l’Université",
+          "url": "https://www.uottawa.ca/notre-universite/administration-services/service-gestion-information-archives/histoire-uottawa"
+        }
+      ]
+    }
+  },
+  {
+    "id": "history-rugby",
+    "history": true,
+    "aliases": [
+      "rugby feminin",
+      "women s rugby",
+      "championnat national de rugby",
+      "championnes de rugby",
+      "rugby national champions"
+    ],
+    "fr": "L’équipe féminine de rugby des Gee-Gees a remporté le championnat national U SPORTS en 2017.",
+    "en": "The Gee-Gees women’s rugby team won the U SPORTS national championship in 2017.",
+    "source": "https://www.uottawa.ca/en/news-all/join-scrum-uottawa-hosts-womens-rugby-national-championships",
+    "source_fr": "https://www.uottawa.ca/fr/toutes-nouvelles/championnat-national-rugby-feminin-luniversite-dottawa-plongez-melee",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s women’s rugby report",
+      "fr": "Article uOttawa sur le rugby féminin"
+    },
+    "history_group": "rugby",
+    "history_years": [
+      2017
+    ]
+  },
+  {
+    "id": "history-soccer",
+    "history": true,
+    "aliases": [
+      "soccer feminin",
+      "women s soccer",
+      "soccer provincial",
+      "championnat de soccer",
+      "championnat provincial de soccer",
+      "soccer championship"
+    ],
+    "fr": "L’équipe féminine de soccer des Gee-Gees a gagné le championnat provincial en 2026. Au championnat national, elle a battu les Carabins de Montréal 2 à 1 en consolation, puis s’est inclinée 2 à 1 contre l’Université de la Colombie-Britannique dans le match pour la cinquième place.",
+    "en": "The Gee-Gees women’s soccer team won the provincial championship in 2026. At nationals it beat the Montréal Carabins 2–1 in a consolation game, then lost 2–1 to the University of British Columbia in the fifth-place match.",
+    "source": "https://www.uottawa.ca/campus-life/news-all/gee-gees-womens-soccer-team-wins-provincial-championship",
+    "source_fr": "https://www.uottawa.ca/vie-campus/toutes-nouvelles/lequipe-soccer-feminin-decroche-titre-provincial",
+    "verified": "2026-11-21",
+    "source_label": {
+      "en": "uOttawa’s women’s soccer report",
+      "fr": "Article uOttawa sur le soccer féminin"
+    },
+    "history_group": "soccer",
+    "history_years": [
+      2026
+    ]
   }
 ]
