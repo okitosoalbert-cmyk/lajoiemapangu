@@ -59,7 +59,7 @@ const microphone = {
   video: false,
 };
 const campusPhrases = [
-  "Université d’Ottawa", "University of Ottawa", "bibliothèque Morisset", "Morisset Library",
+  "Université d’Ottawa", "University of Ottawa", "bibliothèque Morisset", "Morisset Library", "carte étudiante", "student card",
   "pavillon SITE", "SITE building", "complexe STEM", "Carrefour des apprentissages",
   "Learning Crossroads", "centre universitaire Jock-Turcot", "pavillon Fauteux", "Fauteux Hall", "FTX", "CRX", "UCU", "MRT",
 ];
@@ -261,7 +261,7 @@ async function ask(text) {
     if (result.map) {
       link(links, result.map, words.officialMap);
       import("/static/campus-map.js")
-        .then(({showCampusMap}) => showCampusMap(article, result.id, result.lang, result.origin))
+        .then(({showCampusMap}) => showCampusMap(article, result.map_destination || result.id, result.lang, result.origin))
         .then(() => {
           if (article.isConnected) $("messages").scrollTop = $("messages").scrollHeight;
         })
