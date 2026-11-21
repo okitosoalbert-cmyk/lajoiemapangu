@@ -106,3 +106,9 @@ Pour confirmer la version qui répond sur Windows, regarde le numéro et le doss
 Les calculs courts écrits avec des chiffres et des signes simples, comme « Combien font 12 x 8 ? », sont calculés localement. Les autres questions générales, y compris le test de connexion dans `Tester-Gemini.bat`, continuent de passer par Gemini. Sur Windows, le lanceur réserve son port en mode exclusif et l’onglet vérifie qu’il obtient les réponses du serveur qui l’a ouvert.
 
 La dictée automatique regroupe les fragments après environ 1,7 seconde de silence et attend davantage si Chrome transcrit encore une phrase. La synthèse vocale privilégie une voix locale, règle le volume initial à 65 % et lit les réponses longues en segments.
+
+## Langues parlées et voix naturelle
+
+Choisis une langue dans **Langue parlée**. Le mandarin et le japonais sont en tête, et le sélecteur propose 100 langues courantes. La borne conserve les menus FR/EN. Les questions et les réponses dans les autres langues utilisent Gemini, avec une clé configurée. Les indications de campus suivent les fiches locales ou les sources officielles, puis la réponse est traduite. La carte et les liens restent disponibles. La dictée et la voix locale dépendent des langues prises en charge par Chrome et Windows, donc certaines langues sont disponibles uniquement au clavier avec cette configuration.
+
+Pour essayer une voix plus fluide, coche **Voix naturelle Gemini** et active le son. Le texte de la réponse est envoyé à Google pour la synthèse, ce qui peut ajouter du délai et utiliser ton quota. En cas d’indisponibilité ou si Google ne prend pas en charge cette langue pour l’audio, la borne essaie la voix de Chrome. Le réglage reste sur ce PC.
