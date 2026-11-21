@@ -8,9 +8,10 @@ import secrets
 import sqlite3
 import time
 import unicodedata
+from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.error import URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 import qrcode
@@ -53,6 +54,73 @@ def orientation(topic, lang):
     return f"From CRX, look {direction} on the map for {place[lang]}."
 
 
+def find_mentions(text, catalog):
+    found = sorted((match.start(), match.end(), key)
+                   for key, fact in catalog.items()
+                   for alias in fact["aliases"]
+                   for match in re.finditer(r"(?<!\w)" + re.escape(alias) + r"(?!\w)", text))
+    return [(start, end, key) for start, end, key in found if not any(
+        left <= start and right >= end and right - left > end - start
+        for left, right, _ in found
+    )]
+
+
+def similar_buildings(text, catalog):
+    words = text.split()
+    if not words or len(words) > 20:
+        return []
+    scores = {}
+    for topic in PLACES:
+        for alias in catalog[topic]["aliases"]:
+            # Avoid fuzzy guesses for codes, addresses and common short words.
+            if len(alias) < 6 or not alias.replace(" ", "").isalpha():
+                continue
+            size = len(alias.split())
+            for i in range(len(words) - size + 1):
+                candidate = " ".join(words[i:i + size])
+                if candidate[0] != alias[0] or abs(len(candidate) - len(alias)) > 2:
+                    continue
+                score = SequenceMatcher(None, candidate, alias, autojunk=False).ratio()
+                if score >= .84:
+                    scores[topic] = max(scores.get(topic, 0), score)
+    ranked = sorted(scores, key=scores.get, reverse=True)
+    return [topic for topic in ranked[:3] if scores[ranked[0]] - scores[topic] <= .08]
+
+
+def route_between(text, mentions):
+    if len(mentions) != 2 or any(mention[2] not in PLACES for mention in mentions):
+        return None
+    first, second = mentions
+    if first[2] == second[2]:
+        return None
+    before, between = text[:first[0]], text[first[1]:second[0]]
+    if re.search(r"\b(depuis|from|a partir de)\b", between):
+        return second[2], first[2]
+    if re.search(r"\b(de|du|depuis|from|a partir de)\b", before) and re.search(r"\b(a|au|aux|vers|to)\b", between):
+        return first[2], second[2]
+    return None
+
+
+def describe_route(origin, destination, lang, catalog):
+    start, end = PLACES[origin], PLACES[destination]
+    dx, dy = (b - a for a, b in zip(start["point"], end["point"]))
+    direction = DIRECTIONS[lang][round(math.atan2(dx, -dy) / (math.pi / 4)) % 8]
+    metres = max(25, round(math.hypot(dx, dy) / 25) * 25)
+    result = format_fact(catalog[destination], lang)
+    result["origin"] = origin
+    result["text"] = (
+        f"Depuis {start[lang]}, {end[lang]} est au {direction}, à environ {metres} mètres à vol d’oiseau. Ouvre l’itinéraire pour voir le chemin à pied."
+        if lang == "fr" else
+        f"From {start[lang]}, {end[lang]} is {direction}, about {metres} metres as the crow flies. Open directions to see the walking route."
+    )
+    result["route"] = "https://www.google.com/maps/dir/?" + urlencode({
+        "api": 1, "origin": catalog[origin].get("address") or start[lang] + ", University of Ottawa",
+        "destination": catalog[destination].get("address") or end[lang] + ", University of Ottawa",
+        "travelmode": "walking",
+    })
+    return result
+
+
 def connect():
     return sqlite3.connect(DB)
 
@@ -73,8 +141,8 @@ def normalize(text):
 
 def language(text, default):
     words = set(normalize(text).split())
-    fr = words & set("ou trouve est je peux comment adresse chercher quels quelle les des une pour bonjour manger horaires bibliotheque merci loin".split())
-    en = words & set("where is what how i can the to find near hours library hello get food address are thanks thank far list building buildings".split())
+    fr = words & set("ou trouve est je peux comment adresse chercher quels quelle les des une pour bonjour salut aide manger horaires bibliotheque merci loin depuis oui exactement".split())
+    en = words & set("where is what how i can the to find near hours library hello get food address are thanks thank far list building buildings hi help from yes exactly".split())
     return "fr" if len(fr) > len(en) else "en" if len(en) > len(fr) else default
 
 
@@ -195,16 +263,14 @@ def ask():
     if re.fullmatch(r" (merci(?: beaucoup)?|thanks(?: a lot)?|thank you(?: very much)?) ", text):
         return jsonify(lang=lang, text="Avec plaisir ! Tu cherches un autre endroit ou un service ?" if lang == "fr"
                        else "You’re welcome! Are you looking for another place or service?")
-    mentions = []
-    for key, fact in catalog.items():
-        for alias in fact["aliases"]:
-            for match in re.finditer(r"(?<!\w)" + re.escape(alias) + r"(?!\w)", text):
-                mentions.append((match.start(), match.end(), key))
-    matches = dict.fromkeys(key for start, end, key in mentions if not any(
-        outer_start <= start and outer_end >= end and outer_end - outer_start > end - start
-        for outer_start, outer_end, _ in mentions
-    ))
+    mentions = find_mentions(text, catalog)
+    matches = dict.fromkeys(key for _, _, key in mentions)
     selected = next(iter(matches)) if len(matches) == 1 else None
+    confirmation = data.get("confirmation")
+    if not matches and isinstance(confirmation, str) and confirmation in PLACES and re.fullmatch(
+        r" (oui|oui c est ca|c est ca|exactement|yes|yes please|that s right|exactly) ", text
+    ):
+        return jsonify(lang=lang, **dict(format_fact(catalog[confirmation], lang), text=orientation(confirmation, lang)))
     if not matches and previous and re.search(
         r"\b(c est loin|est ce loin|is it far|how far|combien de temps|how long(?: does it take)?|comment j y vais|comment y aller|how do i get there|where is it|c est ou|son adresse|what is its address|est ce ouvert|is it open)\b", text
     ):
@@ -237,6 +303,18 @@ def ask():
                    "I can’t confirm that detail. Check the official page.")
         source = format_fact(catalog[selected], lang)["source"] if selected else MAP[lang]
         return jsonify(lang=lang, text=message[lang == "en"], source=source)
+    route = route_between(text, mentions)
+    if not route and selected in PLACES and previous in PLACES and previous != selected and re.search(
+        r"\b(si je pars de|si je pars du|en partant de|et depuis|what if i start (?:at|from)|starting from)\b", text
+    ):
+        route = (selected, previous)
+    if route:
+        return jsonify(lang=lang, **describe_route(*route, lang, catalog))
+    if not matches and re.fullmatch(r" (bonjour|salut|hello|hi|aide|help|que peux tu faire|what can you do) ", text):
+        return jsonify(lang=lang, text=(
+            "Salut ! Donne-moi un lieu à trouver, deux pavillons à comparer, ou un service étudiant dont tu as besoin."
+            if lang == "fr" else "Hi! Tell me where you want to go, which buildings you want to compare, or what student support you need."
+        ))
     if not matches and re.search(r"\b(liste des (?:pavillons|batiments)|repertoire des (?:batiments|pavillons)|building directory|list of buildings)\b", text):
         directory = ("https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments"
                      if lang == "fr" else MAP["en"] + "/building")
@@ -246,11 +324,21 @@ def ask():
     if len(matches) > 1:
         return jsonify(lang=lang, text="De quel lieu ou service voulez-vous parler ?" if lang == "fr" else "Which place or service do you mean?", options=list(matches),
                        option_labels={key: catalog[key]["aliases"][0] if key not in PLACES else PLACES[key]["code"] for key in matches})
-    if not matches and re.search(r"\b(bibliotheque|library)\b", text):
-        return jsonify(lang=lang, text="Quelle bibliothèque cherchez-vous ?" if lang == "fr" else "Which library are you looking for?", options=["mrt"])
     natural = answer_with_gemini(question, catalog, lang, selected, previous)
     if natural:
         selected, answer = natural
+    if not selected and (
+        re.search(r"\b(ou|where|pavillon|building|residence|localiser|trouver|bibliotheque|library)\b", text)
+        or len(text.split()) <= 3
+    ):
+        suggestions = similar_buildings(text, catalog)
+        if suggestions:
+            return jsonify(lang=lang, options=suggestions,
+                           option_labels={key: PLACES[key][lang] for key in suggestions},
+                           option_queries={key: catalog[key]["aliases"][0] for key in suggestions},
+                           text="Tu parles de l’un de ces bâtiments ?" if lang == "fr" else "Did you mean one of these buildings?")
+    if not selected and re.search(r"\b(bibliotheque|library)\b", text):
+        return jsonify(lang=lang, text="Tu cherches la bibliothèque Morisset ?" if lang == "fr" else "Are you looking for Morisset Library?", options=["mrt"])
     if selected:
         result = format_fact(catalog[selected], lang)
         if natural:
