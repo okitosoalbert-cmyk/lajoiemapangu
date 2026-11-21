@@ -53,9 +53,22 @@ let lang = "fr", sound = false, state = "ready", items = [], activity, pending, 
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
+let audioInput, contextualHints = true;
+const microphone = {
+  audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true},
+  video: false,
+};
+const campusPhrases = [
+  "Université d’Ottawa", "University of Ottawa", "bibliothèque Morisset", "Morisset Library",
+  "pavillon SITE", "SITE building", "complexe STEM", "Carrefour des apprentissages",
+  "Learning Crossroads", "centre universitaire Jock-Turcot", "CRX", "UCU", "MRT",
+];
 try { automatic = localStorage.getItem("innova-auto-v2") === "true"; } catch {}
 if (automatic) sound = true;
 const copy = () => translations[lang];
+const speechPreview = document.createElement("div");
+speechPreview.id = "speechPreview";
+$("notice").before(speechPreview);
 
 function updateAutomatic() {
   const button = $("camera");
@@ -65,11 +78,18 @@ function updateAutomatic() {
   button.setAttribute("aria-pressed", String(automatic));
 }
 
+function releaseAudio() {
+  audioInput?.getTracks().forEach(track => track.stop());
+  audioInput = undefined;
+}
+
 function stopListening() {
   clearTimeout(listenTimer);
   const active = recognition;
   recognition = undefined;
   active?.abort();
+  releaseAudio();
+  speechPreview.textContent = "";
 }
 
 function scheduleListening(delay = 500) {
@@ -423,7 +443,14 @@ function cameraFailed() {
 }
 
 $("ask").onsubmit = (event) => { event.preventDefault(); ask($("question").value); };
-for (const id of ["fr", "en"]) $(id).onclick = () => locale(id);
+for (const id of ["fr", "en"]) $(id).onclick = () => {
+  if (lang === id) return;
+  stopListening();
+  if (state === "listening") status("ready");
+  voiceBlocked = false;
+  locale(id);
+  scheduleListening();
+};
 for (const node of document.querySelectorAll("[data-icon]")) node.innerHTML = svg(node.dataset.icon);
 for (const button of document.querySelectorAll("[data-topic]")) button.onclick = () => ask(copy().topics[button.dataset.topic]);
 function setSound(value) {
@@ -466,9 +493,7 @@ async function prepareMicrophone() {
   $("start").disabled = true;
   $("cameraStatus").textContent = lang === "fr" ? "Autorise le micro dans Chrome…" : "Allow microphone access in Chrome…";
   try {
-    const input = await navigator.mediaDevices.getUserMedia({
-      audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}, video: false,
-    });
+    const input = await navigator.mediaDevices.getUserMedia(microphone);
     input.getTracks().forEach(track => track.stop());
     if (id !== microphoneSetup) return;
     try { localStorage.setItem("innova-auto-v2", "true"); } catch {}
@@ -488,7 +513,16 @@ async function prepareMicrophone() {
   else scheduleListening();
 }
 
-function startListening(auto = false) {
+function normalizeDictation(text) {
+  return text
+    .replace(/\bc[ .-]+r[ .-]+x\b/gi, "CRX")
+    .replace(/\bu[ .-]+c[ .-]+u\b/gi, "UCU")
+    .replace(/\bm[ .-]+r[ .-]+t\b/gi, "MRT")
+    .replace(/\bs[ .-]+i[ .-]+t[ .-]+e\b/gi, "SITE")
+    .replace(/\b(?:Maurisset|Mauricet|Moricet|Maurice est)\b/gi, "Morisset");
+}
+
+async function startListening(auto = false) {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const fail = (reason) => {
     if (auto) voiceBlocked = true;
@@ -499,7 +533,15 @@ function startListening(auto = false) {
   const active = new Recognition();
   recognition = active;
   active.lang = lang === "fr" ? "fr-CA" : "en-CA";
-  active.interimResults = false;
+  active.interimResults = true;
+  if (contextualHints && "phrases" in active && window.SpeechRecognitionPhrase) {
+    try {
+      active.phrases = campusPhrases.map(phrase => new SpeechRecognitionPhrase(phrase, 3));
+    } catch {
+      contextualHints = false;
+    }
+  }
+  let retryWithoutHints = false;
   active.continuous = false;
   const startup = setTimeout(() => {
     if (recognition !== active) return;
@@ -517,11 +559,15 @@ function startListening(auto = false) {
   active.onresult = (event) => {
     clearTimeout(startup);
     if (recognition !== active) return;
-    const text = event.results[event.resultIndex || 0][0].transcript.trim().slice(0, 500);
+    const result = event.results[event.resultIndex || 0];
+    const text = normalizeDictation(result[0].transcript.trim()).slice(0, 500);
     if (!text) return;
+    if (!result.isFinal) {
+      speechPreview.textContent = text;
+      return;
+    }
+    speechPreview.textContent = "";
     if (auto && !$("question").value.trim()) {
-      recognition = undefined;
-      active.abort();
       ask(text);
     } else if (!auto) {
       $("question").value = text;
@@ -529,16 +575,47 @@ function startListening(auto = false) {
   };
   active.onerror = (event) => {
     clearTimeout(startup);
-    if (recognition === active && !["aborted", "no-speech"].includes(event.error)) fail(event.error);
+    if (recognition !== active) return;
+    if (event.error === "phrases-not-supported" && contextualHints) {
+      contextualHints = false;
+      retryWithoutHints = true;
+    } else if (!["aborted", "no-speech"].includes(event.error)) {
+      fail(event.error);
+    }
   };
   active.onend = () => {
     clearTimeout(startup);
     if (recognition !== active) return;
     recognition = undefined;
+    releaseAudio();
+    speechPreview.textContent = "";
     if (state === "listening") status("ready");
-    if (auto) scheduleListening(900);
+    if (retryWithoutHints) startListening(auto);
+    else if (auto) scheduleListening(900);
   };
-  try { active.start(); } catch { clearTimeout(startup); recognition = undefined; fail(); }
+  try {
+    const input = await navigator.mediaDevices.getUserMedia(microphone);
+    if (recognition !== active) {
+      input.getTracks().forEach(track => track.stop());
+      return;
+    }
+    audioInput = input;
+    const track = audioInput.getAudioTracks()[0];
+    if (!track) throw new DOMException("No audio track", "NotFoundError");
+    try {
+      active.start(track);
+    } catch (error) {
+      if (!(error instanceof TypeError)) throw error;
+      releaseAudio();
+      active.start();
+    }
+  } catch (error) {
+    clearTimeout(startup);
+    if (recognition !== active) return;
+    recognition = undefined;
+    releaseAudio();
+    fail(error.name);
+  }
 }
 
 $("mic").onclick = () => {
