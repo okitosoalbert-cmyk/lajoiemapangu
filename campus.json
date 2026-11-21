@@ -1163,5 +1163,26 @@
     "en": "Gee-Gees Field is at 200 Lees Avenue, Ottawa.",
     "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/200-lees-block-a-e",
     "address": "200 Lees Avenue, Ottawa"
+  },
+  {
+    "id": "student-card",
+    "aliases": [
+      "carte etudiante",
+      "carte d etudiant",
+      "carte d etudiante",
+      "carte d identite etudiante",
+      "carte uottawa",
+      "carte u ottawa",
+      "carte etudiants",
+      "carte etudiente",
+      "carte etudian",
+      "student card",
+      "student id card",
+      "student id"
+    ],
+    "fr": "Pour ta première carte étudiante, soumets une photo après ton admission et ton inscription aux cours. Une fois le courriel de confirmation reçu, va au Service de la carte, au 90 Université, local 145. Prends une pièce d’identité valide délivrée par un gouvernement.",
+    "en": "For your first student card, submit a photo once you’ve been admitted and enrolled in courses. After you get the confirmation email, pick it up at the uOttawa Card Service, 90 University, room 145. Bring valid government-issued ID.",
+    "source_fr": "https://www.uottawa.ca/vie-campus/carte-etudiante/obtenir-carte-etudiante",
+    "source": "https://www.uottawa.ca/campus-life/student-card/get-student-card"
   }
 ]
