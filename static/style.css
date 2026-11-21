@@ -36,3 +36,11 @@ dialog{border:1px solid var(--edge);border-radius:22px;color:var(--ink);padding:
 .photo.illustrated canvas{visibility:visible}
 .photo.illustrated img,.photo.loaded canvas{visibility:hidden}
 @media(max-width:760px){.photo canvas{top:52%;width:min(56%,200px)}}
+.campus-map{width:min(100%,580px);align-self:flex-start;background:white;border:1px solid var(--edge);border-radius:14px;padding:10px;margin-block:2px 6px}
+.campus-map h3{margin:2px 2px 8px;font-size:15px;color:var(--wine)}
+.campus-map canvas{display:block;width:100%;height:clamp(195px,30vh,275px);border-radius:8px}
+.campus-controls{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.campus-controls button{min-width:34px;min-height:32px;border:1px solid var(--edge);border-radius:7px;background:var(--wash);font-size:12px;padding:3px 7px}
+.campus-credit{font-size:10px;color:var(--muted);margin:7px 2px 0}
+.messages:has(.campus-map){max-height:53vh}
+.bubble:has(.campus-map){width:100%;max-width:min(100%,630px)}
