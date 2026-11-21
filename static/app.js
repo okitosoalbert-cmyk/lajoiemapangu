@@ -49,7 +49,7 @@ const maps = {
   en: "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 };
 const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisset", food: "food", campus: "services", admission: "Admission"};
-let lang = "fr", sound = false, state = "ready", items = [], activity, pending, recognition, stream;
+let lang = "fr", sound = false, state = "ready", items = [], lastTopic, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
@@ -247,7 +247,7 @@ async function ask(text) {
   status("working");
   const timeout = setTimeout(() => controller.abort(), 7500);
   try {
-    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang}), signal: controller.signal});
+    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic}), signal: controller.signal});
     if (!response.ok) throw Error("Request failed");
     const result = await response.json();
     if (pending !== controller) return;
@@ -274,13 +274,16 @@ async function ask(text) {
     }
     for (const id of result.options || []) {
       const option = document.createElement("button");
-      option.textContent = words[names[id]] || names[id];
+      option.textContent = result.option_labels?.[id] || words[names[id]] || names[id] || id;
       option.onclick = () => ask(option.textContent);
       links.append(option);
     }
     if (links.childNodes.length) article.append(links);
     $("messages").scrollTop = $("messages").scrollHeight;
-    if (result.id && !items.includes(result.id)) items.push(result.id);
+    if (result.id) {
+      lastTopic = result.id;
+      if (!items.includes(result.id)) items.push(result.id);
+    }
     mascot?.play("nod");
     say(result.text, result.lang);
   } catch {
@@ -311,6 +314,7 @@ function clearSession() {
   $("keyboard").hidden = true;
   $("keys").setAttribute("aria-expanded", "false");
   items = [];
+  lastTopic = undefined;
   status("ready");
   animate(/idle|repos/i);
 }
