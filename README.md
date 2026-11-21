@@ -96,3 +96,5 @@ Si une question dépasse les fiches locales, INNOVA peut chercher dans un instan
 ### Questions du quotidien avec Gemini
 
 Quand Gemini est configuré, essaie « Combien font douze fois huit ? » ou « Explique-moi la méthode Pomodoro ». INNOVA peut donner une réponse courte, la lire et comprendre une relance comme « Donne-moi un exemple ». Pour cette relance, le texte de l’échange précédent peut être transmis à Gemini. Il reste dans la session active côté borne et est effacé à la mise en veille ou à la fin de la session. Les réponses générales ne sont pas ajoutées au récapitulatif QR. Les questions spécifiques au campus continuent de passer par les fiches et sources officielles.
+
+Pour vérifier la connexion réelle, double-clique sur `Tester-Gemini.bat` après un premier lancement. Le test utilise la clé locale pour envoyer une question de calcul à Google et affiche le résultat ou la cause d’échec, sans afficher la clé. Le modèle par défaut est `gemini-3.5-flash-lite`.
