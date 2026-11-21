@@ -49,7 +49,7 @@ const maps = {
   en: "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 };
 const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisset", food: "food", campus: "services", admission: "Admission"};
-let lang = "fr", sound = false, state = "ready", items = [], lastTopic, activity, pending, recognition, stream;
+let lang = "fr", sound = false, state = "ready", items = [], lastTopic, confirmation, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
@@ -247,10 +247,11 @@ async function ask(text) {
   status("working");
   const timeout = setTimeout(() => controller.abort(), 7500);
   try {
-    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic}), signal: controller.signal});
+    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation}), signal: controller.signal});
     if (!response.ok) throw Error("Request failed");
     const result = await response.json();
     if (pending !== controller) return;
+    confirmation = result.option_queries && result.options?.length === 1 ? result.options[0] : undefined;
     const words = translations[result.lang];
     const article = bubble(result.text);
     const links = document.createElement("div");
@@ -259,7 +260,7 @@ async function ask(text) {
     if (result.map) {
       link(links, result.map, words.officialMap);
       import("/static/campus-map.js")
-        .then(({showCampusMap}) => showCampusMap(article, result.id, result.lang))
+        .then(({showCampusMap}) => showCampusMap(article, result.id, result.lang, result.origin))
         .then(() => {
           if (article.isConnected) $("messages").scrollTop = $("messages").scrollHeight;
         })
@@ -275,7 +276,7 @@ async function ask(text) {
     for (const id of result.options || []) {
       const option = document.createElement("button");
       option.textContent = result.option_labels?.[id] || words[names[id]] || names[id] || id;
-      option.onclick = () => ask(option.textContent);
+      option.onclick = () => ask(result.option_queries?.[id] || option.textContent);
       links.append(option);
     }
     if (links.childNodes.length) article.append(links);
@@ -315,6 +316,7 @@ function clearSession() {
   $("keys").setAttribute("aria-expanded", "false");
   items = [];
   lastTopic = undefined;
+  confirmation = undefined;
   status("ready");
   animate(/idle|repos/i);
 }
