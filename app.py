@@ -437,7 +437,11 @@ initialize()
 
 
 if __name__ == "__main__":
-    from werkzeug.serving import WSGIRequestHandler
+    from contextlib import redirect_stderr
+    import sys
+    import webbrowser
+
+    from werkzeug.serving import WSGIRequestHandler, make_server
 
     class KioskRequestHandler(WSGIRequestHandler):
         def log_request(self, code="-", size="-"):
@@ -446,9 +450,42 @@ if __name__ == "__main__":
                 return
             super().log_request(code, size)
 
-    print("Gemini configured." if gemini_key() else "INNOVA local mode.")
-    app.run(
-        host=os.getenv("INNOVA_HOST", "127.0.0.1"),
-        port=int(os.getenv("INNOVA_PORT", "5100")),
-        request_handler=KioskRequestHandler,
-    )
+    print("Gemini configured." if gemini_key() else "INNOVA local mode.", flush=True)
+    host = os.getenv("INNOVA_HOST", "127.0.0.1")
+    port = int(os.getenv("INNOVA_PORT", "5100"))
+
+    if "--open-browser" not in sys.argv:
+        app.run(host=host, port=port, request_handler=KioskRequestHandler)
+    else:
+        options = {"threaded": True, "request_handler": KioskRequestHandler}
+        try:
+            with redirect_stderr(io.StringIO()) as setup_error:
+                server = make_server(host, port, app, **options)
+        except SystemExit:
+            if os.getenv("INNOVA_PUBLIC_ORIGIN"):
+                print(setup_error.getvalue(), file=sys.stderr)
+                raise
+            # Bind the actual server directly so there is no gap between finding
+            # an available port and starting to listen on it.
+            for fallback in (port + 1 if port < 65535 else 0, 0):
+                try:
+                    with redirect_stderr(io.StringIO()):
+                        server = make_server(host, fallback, app, **options)
+                    break
+                except SystemExit:
+                    continue
+            else:
+                print(setup_error.getvalue(), file=sys.stderr)
+                raise
+            print(f"Port {port} indisponible. INNOVA utilise le port {server.server_port}.", flush=True)
+
+        browser_host = "127.0.0.1" if host == "0.0.0.0" else "[::1]" if host == "::" else host
+        if ":" in browser_host and not browser_host.startswith("["):
+            browser_host = f"[{browser_host}]"
+        address = f"http://{browser_host}:{server.server_port}/?borne"
+        print(f"INNOVA est prete sur {address}", flush=True)
+        try:
+            webbrowser.open(address, new=2)
+        except webbrowser.Error:
+            pass
+        server.serve_forever()
