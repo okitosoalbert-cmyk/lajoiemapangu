@@ -3,7 +3,7 @@ const campus = fetch("/static/campus-map.json").then(response => {
   return response.json();
 });
 
-export async function showCampusMap(container, destination, lang) {
+export async function showCampusMap(container, destination, lang, originId) {
   const labels = lang === "fr"
     ? {title:"Carte 3D du campus", plan:"Vue schématique · CRX comme point de repère", left:"Tourner à gauche", right:"Tourner à droite", closer:"Agrandir", farther:"Réduire", reset:"Vue du campus", focus:"Recentrer", fail:"Carte intégrée indisponible. Ouvre la carte officielle dans la réponse."}
     : {title:"3D campus map", plan:"Schematic view · CRX reference point", left:"Rotate left", right:"Rotate right", closer:"Zoom in", farther:"Zoom out", reset:"Campus view", focus:"Recenter", fail:"The embedded map is unavailable. Open the official map in the answer."};
@@ -35,8 +35,13 @@ export async function showCampusMap(container, destination, lang) {
     if (!ctx) throw Error("Canvas unavailable");
     const region = target.region || "campus";
     const mainCampus = region === "campus" || region === "north";
-    const origin = mainCampus ? data.places.crx.point : target.point;
-    if (!mainCampus) {
+    const reference = data.places[originId] || (mainCampus ? data.places.crx : target);
+    const area = place => (place.region === "north" ? "campus" : place.region || "campus");
+    const sameArea = area(reference) === area(target);
+    const origin = sameArea ? reference.point : target.point;
+    if (originId && sameArea) {
+      caption.firstChild.textContent = (lang === "fr" ? "Départ " : "Start ") + reference.code + " · ";
+    } else if (!mainCampus || !sameArea) {
       caption.firstChild.textContent = (lang === "fr" ? "Vue du secteur" : "Area view") + " · ";
     }
     const routeCenter = origin.map((value, i) => (value + target.point[i]) / 2);
@@ -103,7 +108,7 @@ export async function showCampusMap(container, destination, lang) {
         ctx.textAlign = "center";
         ctx.fillText(title,x,y-9);
       }
-      if (mainCampus && destination !== "crx") marker(origin, "CRX", "#245c5b");
+      if (sameArea && target !== reference) marker(origin, reference.code, "#245c5b");
       marker(target.point, target.code, "#721538");
 
       const [nx, ny] = [width-24, 30];
