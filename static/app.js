@@ -49,9 +49,12 @@ const maps = {
   en: "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 };
 const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisset", food: "food", campus: "services", admission: "Admission"};
-let lang = "fr", sound = false, state = "ready", items = [], activity, pending, recognition, stream, detector;
+let lang = "fr", sound = false, state = "ready", items = [], activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
+let cameraBackground;
+try { automatic = localStorage.getItem("innova-auto") === "true"; } catch {}
+if (automatic) sound = true;
 const copy = () => translations[lang];
 
 function updateAutomatic() {
@@ -324,14 +327,17 @@ function stopCamera() {
 function wake() {
   stopCamera();
   $("idle").close();
-  if (automatic) waitForDeparture = true;
+  if (automatic) {
+    waitForDeparture = true;
+    voiceBlocked = false;
+  }
   mascot?.pause(false);
   mascot?.play("wave");
   touch();
   $("question").focus();
   animate(/wave|greet|salut/i);
-  say(copy().heading, lang);
-  scheduleListening();
+  if (automatic) startListening(true);
+  else say(copy().heading, lang);
 }
 
 function enterStandby() {
@@ -358,30 +364,46 @@ async function camera() {
     const video = $("preview");
     video.srcObject = stream;
     await video.play();
-    if (!detector) {
-      const cdn = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304";
-      const { FaceDetector, FilesetResolver } = await import(cdn + "/vision_bundle.mjs");
-      const files = await FilesetResolver.forVisionTasks(cdn + "/wasm");
-      detector = await FaceDetector.createFromOptions(files, {
-        baseOptions: {modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"},
-        runningMode: "VIDEO",
-      });
-    }
     if (cycle !== cameraCycle) return;
-    $("cameraStatus").textContent = copy().waiting;
+    const sample = document.createElement("canvas");
+    sample.width = 48;
+    sample.height = 36;
+    const pixels = sample.getContext("2d", {willReadFrequently: true});
     $("camera").disabled = false;
-    let consecutive = 0, empty = 0;
+    $("cameraStatus").textContent = lang === "fr"
+      ? "Caméra active. Avancez vers le centre du cadre."
+      : "Camera active. Step into the center of the frame.";
+    let consecutive = 0, clear = 0;
     const check = () => {
       if (cycle !== cameraCycle) return;
       try {
-        const faces = detector.detectForVideo(video, performance.now()).detections;
-        const centered = faces.some(({boundingBox: box}) => box.width > video.videoWidth * 0.12 &&
-          Math.abs((box.originX + box.width / 2) / video.videoWidth - 0.5) < 0.33);
-        empty = centered ? 0 : empty + 1;
-        if (empty >= 4) waitForDeparture = false;
-        consecutive = centered && !waitForDeparture ? consecutive + 1 : 0;
-        if (consecutive >= 3) wake();
-        else setTimeout(check, 250);
+        if (video.readyState >= 2) {
+          pixels.drawImage(video, 0, 0, sample.width, sample.height);
+          const data = pixels.getImageData(0, 0, sample.width, sample.height).data;
+          const frame = [];
+          // Read the central zone and compensate for uniform changes in exposure.
+          for (let y = 5; y < 33; y++) {
+            for (let x = 8; x < 40; x++) {
+              const i = (y * sample.width + x) * 4;
+              frame.push((data[i] + 2 * data[i + 1] + data[i + 2]) / 4);
+            }
+          }
+          if (!cameraBackground) cameraBackground = frame;
+          const offsets = frame.map((value, i) => value - cameraBackground[i]);
+          const exposure = offsets.reduce((sum, value) => sum + value, 0) / offsets.length;
+          const changed = offsets.filter(value => Math.abs(value - exposure) > 20).length / offsets.length;
+          if (waitForDeparture) {
+            clear = changed < .07 ? clear + 1 : 0;
+            if (clear >= 5) waitForDeparture = false;
+          } else {
+            consecutive = changed > .14 ? consecutive + 1 : 0;
+            if (consecutive >= 3) { wake(); return; }
+            if (changed < .07) {
+              cameraBackground = cameraBackground.map((value, i) => .94 * value + .06 * frame[i]);
+            }
+          }
+        }
+        setTimeout(check, 140);
       } catch {
         cameraFailed();
       }
@@ -422,9 +444,14 @@ $("keys").onclick = () => {
 };
 function startListening(auto = false) {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const fail = () => {
+  const fail = (reason) => {
     if (auto) voiceBlocked = true;
-    $("notice").textContent = copy().micFailure;
+    const denied = ["not-allowed", "service-not-allowed"].includes(reason);
+    const details = {
+      fr: {denied: "Micro bloqué. Autorisez-le dans les paramètres du site dans Chrome, puis rechargez la borne.", network: "Le service de dictée de Chrome est inaccessible. Vérifiez Internet. La saisie texte reste disponible."},
+      en: {denied: "Microphone blocked. Allow it in Chrome’s site settings, then reload the kiosk.", network: "Chrome’s speech service is unavailable. Check your connection or type your question."},
+    };
+    $("notice").textContent = denied ? details[lang].denied : reason === "network" ? details[lang].network : copy().micFailure;
   };
   if (!Recognition) { fail(); return; }
   if (recognition || utterance || pending) return;
@@ -449,7 +476,7 @@ function startListening(auto = false) {
     }
   };
   active.onerror = (event) => {
-    if (recognition === active && !["aborted", "no-speech"].includes(event.error)) fail();
+    if (recognition === active && !["aborted", "no-speech"].includes(event.error)) fail(event.error);
   };
   active.onend = () => {
     if (recognition !== active) return;
@@ -485,6 +512,8 @@ $("camera").onclick = () => {
   automatic = !automatic;
   voiceBlocked = false;
   waitForDeparture = false;
+  cameraBackground = undefined;
+  try { localStorage.setItem("innova-auto", String(automatic)); } catch {}
   updateAutomatic();
   if (automatic) {
     setSound(true);
@@ -510,5 +539,6 @@ for (const event of ["pointerdown", "keydown"]) document.addEventListener(event,
   if (!$("idle").open && !$("summary").open) touch();
 });
 locale("fr");
+setSound(sound);
 touch();
 if (new URLSearchParams(location.search).has("borne")) enterStandby();
