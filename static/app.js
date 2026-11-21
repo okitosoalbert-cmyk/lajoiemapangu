@@ -49,9 +49,36 @@ const maps = {
   en: "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 };
 const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisset", food: "food", campus: "services", admission: "Admission"};
-let lang = "fr", sound = false, state = "ready", items = [], activity, pending, recognition, stream, detector, session = 0;
+let lang = "fr", sound = false, state = "ready", items = [], activity, pending, recognition, stream, detector;
 let cameraCycle = 0, transferCycle = 0;
+let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 const copy = () => translations[lang];
+
+function updateAutomatic() {
+  const button = $("camera");
+  button.textContent = lang === "fr"
+    ? (automatic ? "Désactiver le mode automatique" : "Activer le mode automatique")
+    : (automatic ? "Disable automatic mode" : "Enable automatic mode");
+  button.setAttribute("aria-pressed", String(automatic));
+}
+
+function stopListening() {
+  clearTimeout(listenTimer);
+  const active = recognition;
+  recognition = undefined;
+  active?.abort();
+}
+
+function scheduleListening(delay = 500) {
+  clearTimeout(listenTimer);
+  if (!automatic || voiceBlocked) return;
+  listenTimer = setTimeout(() => {
+    if (!document.hidden && !$("idle").open && !$("summary").open &&
+        !recognition && !utterance && !pending && !$("question").value.trim()) {
+      startListening(true);
+    }
+  }, delay);
+}
 const svg = (name) => '<svg aria-hidden="true" viewBox="0 0 24 24">' + paths[name] + '</svg>';
 const speech = window.speechSynthesis;
 const viewer = document.querySelector("model-viewer");
@@ -101,6 +128,7 @@ function locale(value) {
   labelButton("send", "send", copy().send);
   labelButton("sound", sound ? "sound" : "mute", sound ? copy().mute : copy().sound);
   status(state);
+  updateAutomatic();
   buildKeyboard();
 }
 
@@ -120,6 +148,7 @@ function buildKeyboard() {
       const value = key === "⌫" ? "" : key === "␣" ? " " : key.toLowerCase();
       if (input.value.length - input.selectionEnd + begin + value.length <= 500) {
         input.setRangeText(value, begin, input.selectionEnd, "end");
+        input.dispatchEvent(new Event("input", {bubbles: true}));
       }
       input.focus();
     };
@@ -152,32 +181,39 @@ function link(container, url, label) {
   container.append(a);
 }
 
+function stopVoice() {
+  utterance = undefined;
+  speech?.cancel();
+}
+
 function say(text, replyLang) {
   if (!sound || !speech) return;
-  speech.cancel();
-  const current = session;
+  stopVoice();
   const voice = new SpeechSynthesisUtterance(text);
+  utterance = voice;
   voice.lang = replyLang === "fr" ? "fr-CA" : "en-CA";
   voice.volume = Number($("volume").value);
   voice.onstart = () => {
-    if (current !== session) return;
+    if (utterance !== voice) return;
     status("speaking");
     animate(/speak|talk|parl|mouth/i);
   };
   voice.onend = voice.onerror = () => {
-    if (current !== session || state !== "speaking") return;
+    if (utterance !== voice) return;
+    utterance = undefined;
     status("ready");
     animate(/idle|repos/i);
+    scheduleListening();
   };
-  speech.speak(voice);
+  try { speech.speak(voice); } catch { voice.onerror(); }
 }
 
 async function ask(text) {
   text = text.trim();
   if (!text || pending) return;
   touch();
-  recognition?.abort();
-  speech?.cancel();
+  stopListening();
+  stopVoice();
   $("notice").textContent = "";
   $("question").value = "";
   $("suggestions").hidden = true;
@@ -224,18 +260,18 @@ async function ask(text) {
       pending = undefined;
       $("send").disabled = false;
       if (state === "working") status("ready");
+      scheduleListening();
     }
   }
 }
 
 function clearSession() {
   mascot?.play("");
-  session++;
   const controller = pending;
   pending = undefined;
   controller?.abort();
-  recognition?.abort();
-  speech?.cancel();
+  stopListening();
+  stopVoice();
   $("send").disabled = false;
   $("messages").replaceChildren();
   $("suggestions").hidden = false;
@@ -288,12 +324,14 @@ function stopCamera() {
 function wake() {
   stopCamera();
   $("idle").close();
+  if (automatic) waitForDeparture = true;
   mascot?.pause(false);
   mascot?.play("wave");
   touch();
   $("question").focus();
   animate(/wave|greet|salut/i);
   say(copy().heading, lang);
+  scheduleListening();
 }
 
 function enterStandby() {
@@ -303,9 +341,11 @@ function enterStandby() {
   clearSession();
   $("cameraStatus").textContent = "";
   if (!$("idle").open) $("idle").showModal();
+  if (automatic && !document.hidden) camera();
 }
 
 async function camera() {
+  if (stream || $("camera").disabled) return;
   const cycle = ++cameraCycle;
   $("camera").disabled = true;
   try {
@@ -329,74 +369,143 @@ async function camera() {
     }
     if (cycle !== cameraCycle) return;
     $("cameraStatus").textContent = copy().waiting;
-    let consecutive = 0;
+    $("camera").disabled = false;
+    let consecutive = 0, empty = 0;
     const check = () => {
       if (cycle !== cameraCycle) return;
       try {
         const faces = detector.detectForVideo(video, performance.now()).detections;
-        const centered = faces.some(({boundingBox: box}) => box.width > video.videoWidth * 0.20 &&
-          Math.abs((box.originX + box.width / 2) / video.videoWidth - 0.5) < 0.22);
-        consecutive = centered ? consecutive + 1 : 0;
-        if (consecutive >= 4) wake();
+        const centered = faces.some(({boundingBox: box}) => box.width > video.videoWidth * 0.12 &&
+          Math.abs((box.originX + box.width / 2) / video.videoWidth - 0.5) < 0.33);
+        empty = centered ? 0 : empty + 1;
+        if (empty >= 4) waitForDeparture = false;
+        consecutive = centered && !waitForDeparture ? consecutive + 1 : 0;
+        if (consecutive >= 3) wake();
         else setTimeout(check, 250);
       } catch {
-        stopCamera();
-        $("cameraStatus").textContent = copy().cameraFailure;
+        cameraFailed();
       }
     };
     check();
   } catch {
     if (cycle === cameraCycle) {
-      stopCamera();
-      $("cameraStatus").textContent = copy().cameraFailure;
+      cameraFailed();
     }
   }
+}
+
+function cameraFailed() {
+  stopCamera();
+  $("cameraStatus").textContent = copy().cameraFailure;
 }
 
 $("ask").onsubmit = (event) => { event.preventDefault(); ask($("question").value); };
 for (const id of ["fr", "en"]) $(id).onclick = () => locale(id);
 for (const node of document.querySelectorAll("[data-icon]")) node.innerHTML = svg(node.dataset.icon);
 for (const button of document.querySelectorAll("[data-topic]")) button.onclick = () => ask(copy().topics[button.dataset.topic]);
-$("sound").onclick = () => {
-  sound = !sound;
-  if (!sound) speech?.cancel();
+function setSound(value) {
+  sound = value;
+  if (!sound) {
+    stopVoice();
+    if (state === "speaking") status("ready");
+    scheduleListening();
+  }
   $("volume").hidden = !sound;
   $("sound").setAttribute("aria-pressed", String(sound));
   locale(lang);
-};
+}
+$("sound").onclick = () => setSound(!sound);
 $("keys").onclick = () => {
   const keyboard = $("keyboard");
   keyboard.hidden = !keyboard.hidden;
   $("keys").setAttribute("aria-expanded", String(!keyboard.hidden));
 };
-$("mic").onclick = () => {
+function startListening(auto = false) {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!Recognition) {
+  const fail = () => {
+    if (auto) voiceBlocked = true;
     $("notice").textContent = copy().micFailure;
-    return;
-  }
-  if (recognition) { recognition.stop(); return; }
-  speech?.cancel();
-  const current = session;
+  };
+  if (!Recognition) { fail(); return; }
+  if (recognition || utterance || pending) return;
   const active = new Recognition();
   recognition = active;
   active.lang = lang === "fr" ? "fr-CA" : "en-CA";
-  active.onstart = () => { if (current === session) status("listening"); };
-  active.onresult = (event) => { if (current === session) $("question").value = event.results[0][0].transcript.slice(0, 500); };
-  active.onerror = (event) => { if (current === session && event.error !== "aborted") $("notice").textContent = copy().micFailure; };
-  active.onend = () => {
-    if (recognition === active) recognition = undefined;
-    if (current === session && state === "listening") status("ready");
+  active.interimResults = false;
+  active.continuous = false;
+  active.onstart = () => {
+    if (recognition === active) status("listening");
   };
-  try { active.start(); } catch { recognition = undefined; $("notice").textContent = copy().micFailure; }
+  active.onresult = (event) => {
+    if (recognition !== active) return;
+    const text = event.results[event.resultIndex || 0][0].transcript.trim().slice(0, 500);
+    if (!text) return;
+    if (auto && !$("question").value.trim()) {
+      recognition = undefined;
+      active.abort();
+      ask(text);
+    } else if (!auto) {
+      $("question").value = text;
+    }
+  };
+  active.onerror = (event) => {
+    if (recognition === active && !["aborted", "no-speech"].includes(event.error)) fail();
+  };
+  active.onend = () => {
+    if (recognition !== active) return;
+    recognition = undefined;
+    if (state === "listening") status("ready");
+    if (auto) scheduleListening(900);
+  };
+  try { active.start(); } catch { recognition = undefined; fail(); }
+}
+
+$("mic").onclick = () => {
+  voiceBlocked = false;
+  if (recognition) {
+    stopListening();
+    if (state === "listening") status("ready");
+  } else {
+    startListening(automatic);
+  }
 };
+$("question").addEventListener("input", () => {
+  if (!automatic) return;
+  stopListening();
+  if (state === "listening") status("ready");
+  if (!$("question").value.trim()) scheduleListening();
+});
 $("finish").onclick = finish;
 $("reset").onclick = () => { hideSummary(); enterStandby(); };
 $("summary").addEventListener("cancel", (event) => { event.preventDefault(); enterStandby(); });
 $("standby").onclick = enterStandby;
 $("start").onclick = wake;
 $("idle").addEventListener("cancel", (event) => { event.preventDefault(); wake(); });
-$("camera").onclick = camera;
+$("camera").onclick = () => {
+  automatic = !automatic;
+  voiceBlocked = false;
+  waitForDeparture = false;
+  updateAutomatic();
+  if (automatic) {
+    setSound(true);
+    camera();
+  } else {
+    stopCamera();
+    stopListening();
+    $("cameraStatus").textContent = "";
+  }
+};
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopCamera();
+    stopListening();
+    if (state === "listening") status("ready");
+  } else if (automatic && $("idle").open) {
+    camera();
+  } else {
+    scheduleListening();
+  }
+});
 for (const event of ["pointerdown", "keydown"]) document.addEventListener(event, () => {
   if (!$("idle").open && !$("summary").open) touch();
 });
