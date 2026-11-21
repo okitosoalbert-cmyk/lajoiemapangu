@@ -274,5 +274,873 @@
     "en": "If you need adjustments for classes or exams, start with Academic Accommodations. The official page explains available supports and where to begin.",
     "source": "https://www.uottawa.ca/study/academic-support-mentoring/accommodation-services-available",
     "source_fr": "https://www.uottawa.ca/etudes/soutien-academique-mentorat/accommodements-scolaire-services"
+  },
+  {
+    "id": "1-stewart",
+    "aliases": [
+      "stt",
+      "1 stewart",
+      "1 rue stewart"
+    ],
+    "building": true,
+    "fr": "1 Stewart se trouve au 1 Stewart St, Ottawa, ON K1N 7M9.",
+    "en": "1 Stewart is at 1 Stewart St, Ottawa, ON K1N 7M9.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/1-stewart",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/1-stewart",
+    "address": "1 Stewart St, Ottawa, ON K1N 7M9"
+  },
+  {
+    "id": "100-laurier",
+    "aliases": [
+      "lrr",
+      "100 laurier"
+    ],
+    "building": true,
+    "fr": "100 Laurier se trouve au 100 Laurier Avenue East, Ottawa, ON K1N 6N7.",
+    "en": "100 Laurier is at 100 Laurier Avenue East, Ottawa, ON K1N 6N7.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/100-laurier",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/100-laurier",
+    "address": "100 Laurier Avenue East, Ottawa, ON K1N 6N7"
+  },
+  {
+    "id": "100-marie-curie",
+    "aliases": [
+      "mce",
+      "100 marie curie"
+    ],
+    "building": true,
+    "fr": "100 Marie-Curie se trouve au 100 Marie-Curie Private, Ottawa, ON K1N 9N3.",
+    "en": "100 Marie-Curie is at 100 Marie-Curie Private, Ottawa, ON K1N 9N3.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/100-marie-curie",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/100-marie-curie",
+    "address": "100 Marie-Curie Private, Ottawa, ON K1N 9N3"
+  },
+  {
+    "id": "200-lees-block-a-e",
+    "aliases": [
+      "060",
+      "200 lees blocs a et e",
+      "200 lees",
+      "bloc a lees",
+      "bloc e lees",
+      "lees block a",
+      "lees block e",
+      "campus lees"
+    ],
+    "building": true,
+    "fr": "200 Lees · blocs A et E se trouve au 200 Lees Avenue, Ottawa.",
+    "en": "200 Lees is at 200 Lees Avenue, Ottawa.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/200-lees-block-a-e",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/200-lees-bloc-e-a",
+    "address": "200 Lees Avenue, Ottawa"
+  },
+  {
+    "id": "200-lees-fhs",
+    "aliases": [
+      "fhs",
+      "faculte des sciences de la sante a lees",
+      "faculty of health sciences at lees",
+      "sciences de la sante",
+      "faculte des sciences de la sante",
+      "health sciences building",
+      "faculty of health sciences",
+      "lees fhs"
+    ],
+    "building": true,
+    "fr": "Faculté des sciences de la santé à Lees se trouve au 200 Lees Avenue, Ottawa, ON K1S 5S9.",
+    "en": "Faculty of Health Sciences at Lees is at 200 Lees Avenue, Ottawa, ON K1S 5S9.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/200-lees-fhs",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/200-lees-fssante",
+    "address": "200 Lees Avenue, Ottawa, ON K1S 5S9"
+  },
+  {
+    "id": "academic-hall-smn",
+    "aliases": [
+      "smn",
+      "salle academique",
+      "academic hall"
+    ],
+    "building": true,
+    "fr": "Salle académique se trouve au 133-135 Séraphin-Marion, Ottawa, ON K1N 1A2.",
+    "en": "Academic Hall is at 133-135 Séraphin-Marion, Ottawa, ON K1N 1A2.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/academic-hall-smn",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-academique-smn",
+    "address": "133-135 Séraphin-Marion, Ottawa, ON K1N 1A2"
+  },
+  {
+    "id": "advanced-research-complex-arc",
+    "aliases": [
+      "arc",
+      "complexe de recherche avancee",
+      "advanced research complex"
+    ],
+    "building": true,
+    "fr": "Complexe de recherche avancée se trouve au 25 Templeton St, Ottawa, ON K1N 7P6.",
+    "en": "Advanced Research Complex is at 25 Templeton St, Ottawa, ON K1N 7P6.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/advanced-research-complex-arc",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/complexe-recherche-avancee",
+    "address": "25 Templeton St, Ottawa, ON K1N 7P6"
+  },
+  {
+    "id": "biosciences-complex",
+    "aliases": [
+      "bsc",
+      "complexe des biosciences",
+      "biosciences"
+    ],
+    "building": true,
+    "fr": "Complexe des biosciences se trouve au 30 Marie Curie Private, Ottawa, ON K1N 9B4.",
+    "en": "Biosciences is at 30 Marie Curie Private, Ottawa, ON K1N 9B4.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/biosciences-complex",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/complexe-biosciences-bsc",
+    "address": "30 Marie Curie Private, Ottawa, ON K1N 9B4"
+  },
+  {
+    "id": "brooks-residence",
+    "aliases": [
+      "brs",
+      "complexe brooks",
+      "brooks complex",
+      "brooks"
+    ],
+    "building": true,
+    "fr": "Complexe Brooks se trouve au 100 Thomas More, Ottawa, ON K1N 6N5.",
+    "en": "Brooks Complex is at 100 Thomas More, Ottawa, ON K1N 6N5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/brooks-residence",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/residence-brooks",
+    "address": "100 Thomas More, Ottawa, ON K1N 6N5"
+  },
+  {
+    "id": "colonel-hall-cby",
+    "aliases": [
+      "cby",
+      "pavillon colonel by",
+      "colonel by hall",
+      "colonel by"
+    ],
+    "building": true,
+    "fr": "Pavillon Colonel-By se trouve au 161 Louis Pasteur, Ottawa, ON, Canada.",
+    "en": "Colonel By Hall is at 161 Louis Pasteur, Ottawa, ON, Canada.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/colonel-hall-cby",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-colonel-by-cby",
+    "address": "161 Louis Pasteur, Ottawa, ON, Canada"
+  },
+  {
+    "id": "desmarais-hall",
+    "aliases": [
+      "dms",
+      "pavillon desmarais",
+      "desmarais hall",
+      "desmarais"
+    ],
+    "building": true,
+    "fr": "Pavillon Desmarais se trouve au 55 Laurier Avenue East, Ottawa, ON K1N 6N5.",
+    "en": "Desmarais Hall is at 55 Laurier Avenue East, Ottawa, ON K1N 6N5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/desmarais-hall",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-desmarais",
+    "address": "55 Laurier Avenue East, Ottawa, ON K1N 6N5"
+  },
+  {
+    "id": "diorio-hall",
+    "aliases": [
+      "dro",
+      "pavillon d iorio",
+      "d iorio hall",
+      "d iorio",
+      "diorio"
+    ],
+    "building": true,
+    "fr": "Pavillon D’Iorio se trouve au 10 Marie Curie.",
+    "en": "D'Iorio Hall is at 10 Marie Curie.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/diorio-hall",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-diorio",
+    "address": "10 Marie Curie, Ottawa"
+  },
+  {
+    "id": "fauteux-hall",
+    "aliases": [
+      "ftx",
+      "pavillon fauteux",
+      "fauteux hall",
+      "fauteux",
+      "faculte de droit",
+      "faculty of law"
+    ],
+    "building": true,
+    "fr": "Pavillon Fauteux se trouve au 57 Louis Pasteur Private, Ottawa, ON K1N 6N5.",
+    "en": "Fauteux Hall is at 57 Louis Pasteur Private, Ottawa, ON K1N 6N5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/fauteux-hall",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-fauteux",
+    "address": "57 Louis Pasteur Private, Ottawa, ON K1N 6N5"
+  },
+  {
+    "id": "hagen-hall",
+    "aliases": [
+      "hgn",
+      "pavillon hagen",
+      "hagen hall",
+      "hagen"
+    ],
+    "building": true,
+    "fr": "Pavillon Hagen se trouve au 115 Séraphin-Marion Private, Ottawa, ON K1N 6H7.",
+    "en": "Hagen Hall is at 115 Séraphin-Marion Private, Ottawa, ON K1N 6H7.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/hagen-hall",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-hagen",
+    "address": "115 Séraphin-Marion Private, Ottawa, ON K1N 6H7"
+  },
+  {
+    "id": "hamelin-hall",
+    "aliases": [
+      "mhn",
+      "pavillon hamelin",
+      "hamelin hall",
+      "hamelin",
+      "hmn"
+    ],
+    "building": true,
+    "fr": "Pavillon Hamelin se trouve au 70 Laurier Avenue East, Ottawa, ON K1N 6N5.",
+    "en": "Hamelin Hall is at 70 Laurier Avenue East, Ottawa, ON K1N 6N5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/hamelin-hall",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-hamelin",
+    "address": "70 Laurier Avenue East, Ottawa, ON K1N 6N5"
+  },
+  {
+    "id": "king-edward-buildings",
+    "aliases": [
+      "edifices de l avenue king edward",
+      "king edward buildings",
+      "edifices king edward"
+    ],
+    "building": true,
+    "fr": "Pour trouver Édifices de l’avenue King Edward, ouvre sa fiche officielle.",
+    "en": "Open the official building page to find King Edward Buildings.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward"
+  },
+  {
+    "id": "lamoureux-hall-lmx",
+    "aliases": [
+      "lmx",
+      "pavillon lamoureux",
+      "lamoureux hall",
+      "lamoureux"
+    ],
+    "building": true,
+    "fr": "Pavillon Lamoureux se trouve au 145 Jean-Jacques-Lussier Private, Ottawa, ON K1N 6N5.",
+    "en": "Lamoureux Hall is at 145 Jean-Jacques-Lussier Private, Ottawa, ON K1N 6N5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/lamoureux-hall-lmx",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-lamoureux-lmx",
+    "address": "145 Jean-Jacques-Lussier Private, Ottawa, ON K1N 6N5"
+  },
+  {
+    "id": "marion-hall-mrn",
+    "aliases": [
+      "mrn",
+      "pavillon marion",
+      "marion hall",
+      "marion"
+    ],
+    "building": true,
+    "fr": "Pavillon Marion se trouve au 140 Louis-Pasteur Private, Ottawa, ON K1N 1A2.",
+    "en": "Marion Hall is at 140 Louis-Pasteur Private, Ottawa, ON K1N 1A2.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/marion-hall-mrn",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-marion-mrn",
+    "address": "140 Louis-Pasteur Private, Ottawa, ON K1N 1A2"
+  },
+  {
+    "id": "minto-sports-complex",
+    "aliases": [
+      "mno",
+      "complexe sportif minto",
+      "minto sports complex",
+      "minto"
+    ],
+    "building": true,
+    "fr": "Complexe sportif Minto se trouve au 801 King Edward Ave, Ottawa, ON K1N 6N5.",
+    "en": "Minto Sports Complex is at 801 King Edward Ave, Ottawa, ON K1N 6N5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/minto-sports-complex",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/complexe-sportif-minto",
+    "address": "801 King Edward Ave, Ottawa, ON K1N 6N5"
+  },
+  {
+    "id": "montpetit-hall-mnt",
+    "aliases": [
+      "mnt",
+      "pavillon montpetit",
+      "montpetit hall",
+      "montpetit"
+    ],
+    "building": true,
+    "fr": "Pavillon Montpetit se trouve au 125 University Private, Ottawa, ON K1N 1A2.",
+    "en": "Montpetit Hall is at 125 University Private, Ottawa, ON K1N 1A2.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/montpetit-hall-mnt",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-montpetit-mnt",
+    "address": "125 University Private, Ottawa, ON K1N 1A2"
+  },
+  {
+    "id": "perez-hall",
+    "aliases": [
+      "prz",
+      "pavillon perez",
+      "perez hall",
+      "perez"
+    ],
+    "building": true,
+    "fr": "Pavillon Pérez se trouve au 50 University Private, Ottawa, ON K1N 6N5.",
+    "en": "Pérez Hall is at 50 University Private, Ottawa, ON K1N 6N5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/perez-hall",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-perez",
+    "address": "50 University Private, Ottawa, ON K1N 6N5"
+  },
+  {
+    "id": "power-plant",
+    "aliases": [
+      "cte",
+      "centrale thermique",
+      "power plant"
+    ],
+    "building": true,
+    "fr": "Centrale thermique se trouve au 720 King Edward Ave, Ottawa, ON K1N 6V2.",
+    "en": "Power Plant is at 720 King Edward Ave, Ottawa, ON K1N 6V2.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/power-plant",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/centrale-thermique",
+    "address": "720 King Edward Ave, Ottawa, ON K1N 6V2"
+  },
+  {
+    "id": "roger-guindon-hall-rgn",
+    "aliases": [
+      "rgn",
+      "pavillon roger guindon",
+      "roger guindon hall",
+      "roger guindon",
+      "campus alta vista"
+    ],
+    "building": true,
+    "fr": "Pavillon Roger-Guindon se trouve au 451 Smyth Rd, Ottawa, ON K1H 8L1.",
+    "en": "Roger Guindon Hall is at 451 Smyth Rd, Ottawa, ON K1H 8L1.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/roger-guindon-hall-rgn",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-roger-guindon-rgn",
+    "address": "451 Smyth Rd, Ottawa, ON K1H 8L1"
+  },
+  {
+    "id": "seraphin-marion-buildings",
+    "aliases": [
+      "edifices de seraphin marion",
+      "seraphin marion buildings",
+      "edifices seraphin marion"
+    ],
+    "building": true,
+    "fr": "Pour trouver Édifices de Séraphin-Marion, ouvre sa fiche officielle.",
+    "en": "Open the official building page to find Séraphin-Marion Buildings.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/seraphin-marion-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-seraphin-marion"
+  },
+  {
+    "id": "simard-hall-smd",
+    "aliases": [
+      "smd",
+      "pavillon simard",
+      "simard hall",
+      "simard"
+    ],
+    "building": true,
+    "fr": "Pavillon Simard se trouve au 60 University, Ottawa, ON K1N 8Z4.",
+    "en": "Simard Hall is at 60 University, Ottawa, ON K1N 8Z4.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/simard-hall-smd",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-simard-smd",
+    "address": "60 University, Ottawa, ON K1N 8Z4"
+  },
+  {
+    "id": "social-sciences-building",
+    "aliases": [
+      "fss",
+      "pavillon des sciences sociales",
+      "social sciences building",
+      "sciences sociales",
+      "faculte des sciences sociales",
+      "faculty of social sciences"
+    ],
+    "building": true,
+    "fr": "Pavillon des sciences sociales se trouve au 120 University Private, Ottawa, ON K1N 6N5.",
+    "en": "Social Sciences Building is at 120 University Private, Ottawa, ON K1N 6N5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/social-sciences-building",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-des-sciences-sociales",
+    "address": "120 University Private, Ottawa, ON K1N 6N5"
+  },
+  {
+    "id": "tabaret-hall",
+    "aliases": [
+      "tbt",
+      "pavillon tabaret",
+      "tabaret hall",
+      "tabaret"
+    ],
+    "building": true,
+    "fr": "Pavillon Tabaret se trouve au 550 Cumberland St, Ottawa, ON K1N 6N8.",
+    "en": "Tabaret Hall is at 550 Cumberland St, Ottawa, ON K1N 6N8.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/tabaret-hall",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-tabaret",
+    "address": "550 Cumberland St, Ottawa, ON K1N 6N8"
+  },
+  {
+    "id": "vanier-hall-vnr",
+    "aliases": [
+      "vnr",
+      "pavillon vanier",
+      "vanier hall",
+      "vanier"
+    ],
+    "building": true,
+    "fr": "Pavillon Vanier se trouve au 136 Jean-Jacques-Lussier Private, Ottawa, ON K1N 9A4.",
+    "en": "Vanier Hall is at 136 Jean-Jacques-Lussier Private, Ottawa, ON K1N 9A4.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/vanier-hall-vnr",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-vanier",
+    "address": "136 Jean-Jacques-Lussier Private, Ottawa, ON K1N 9A4"
+  },
+  {
+    "id": "wilbrod",
+    "aliases": [
+      "wld",
+      "pavillon wilbrod",
+      "wilbrod",
+      "200 wilbrod"
+    ],
+    "building": true,
+    "fr": "Pavillon Wilbrod se trouve au 200 Wilbrod St, Ottawa, ON K1N 1K5.",
+    "en": "Wilbrod is at 200 Wilbrod St, Ottawa, ON K1N 1K5.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/wilbrod",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/wilbrod",
+    "address": "200 Wilbrod St, Ottawa, ON K1N 1K5"
+  },
+  {
+    "id": "res-45-mann",
+    "aliases": [
+      "mnn",
+      "residence 45 mann",
+      "45 mann residence",
+      "45 mann"
+    ],
+    "building": true,
+    "fr": "Résidence 45 Mann se trouve au 45 Mann Avenue.",
+    "en": "45 Mann Residence is at 45 Mann Avenue.",
+    "source": "https://www.uottawa.ca/campus-life/housing/45-mann",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/45-mann",
+    "address": "45 Mann Avenue, Ottawa"
+  },
+  {
+    "id": "res-90-university",
+    "aliases": [
+      "90u",
+      "residence 90 universite",
+      "90 university residence",
+      "90 universite",
+      "90 university"
+    ],
+    "building": true,
+    "fr": "Résidence 90 Université se trouve au 90 University Private.",
+    "en": "90 University Residence is at 90 University Private.",
+    "source": "https://www.uottawa.ca/campus-life/housing/90-university",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/90-universite",
+    "address": "90 University Private, Ottawa"
+  },
+  {
+    "id": "res-annex",
+    "aliases": [
+      "anx",
+      "residence annex",
+      "annex residence",
+      "annex",
+      "annexe"
+    ],
+    "building": true,
+    "fr": "Résidence Annex se trouve au 265 Laurier Avenue East.",
+    "en": "Annex Residence is at 265 Laurier Avenue East.",
+    "source": "https://www.uottawa.ca/campus-life/housing/annex",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/annexe",
+    "address": "265 Laurier Avenue East, Ottawa"
+  },
+  {
+    "id": "res-friel",
+    "aliases": [
+      "frl",
+      "residence friel",
+      "friel residence",
+      "friel"
+    ],
+    "building": true,
+    "fr": "Résidence Friel se trouve au 240 Friel Street.",
+    "en": "Friel Residence is at 240 Friel Street.",
+    "source": "https://www.uottawa.ca/campus-life/housing/friel",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/friel",
+    "address": "240 Friel Street, Ottawa"
+  },
+  {
+    "id": "res-henderson",
+    "aliases": [
+      "hnn",
+      "residence henderson",
+      "henderson residence",
+      "henderson"
+    ],
+    "building": true,
+    "fr": "Résidence Henderson se trouve au 202 Henderson Avenue.",
+    "en": "Henderson Residence is at 202 Henderson Avenue.",
+    "source": "https://www.uottawa.ca/campus-life/housing/henderson",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/henderson",
+    "address": "202 Henderson Avenue, Ottawa"
+  },
+  {
+    "id": "res-hyman-soloway",
+    "aliases": [
+      "residence hyman soloway",
+      "hyman soloway residence",
+      "hyman soloway",
+      "soloway"
+    ],
+    "building": true,
+    "fr": "Résidence Hyman-Soloway se trouve au 157 Laurier Avenue East.",
+    "en": "Hyman Soloway Residence is at 157 Laurier Avenue East.",
+    "source": "https://www.uottawa.ca/campus-life/housing/hyman-soloway",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/hyman-soloway",
+    "address": "157 Laurier Avenue East, Ottawa"
+  },
+  {
+    "id": "res-leblanc",
+    "aliases": [
+      "lbc",
+      "residence leblanc",
+      "leblanc residence",
+      "leblanc"
+    ],
+    "building": true,
+    "fr": "Résidence Leblanc se trouve au 45 Copernicus Street.",
+    "en": "Leblanc Residence is at 45 Copernicus Street.",
+    "source": "https://www.uottawa.ca/campus-life/housing/leblanc",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/leblanc",
+    "address": "45 Copernicus Street, Ottawa"
+  },
+  {
+    "id": "res-marchand",
+    "aliases": [
+      "mrd",
+      "residence marchand",
+      "marchand residence",
+      "marchand"
+    ],
+    "building": true,
+    "fr": "Résidence Marchand se trouve au 110 University Private.",
+    "en": "Marchand Residence is at 110 University Private.",
+    "source": "https://www.uottawa.ca/campus-life/housing/marchand",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/marchand",
+    "address": "110 University Private, Ottawa"
+  },
+  {
+    "id": "res-rideau",
+    "aliases": [
+      "residence rideau",
+      "rideau residence",
+      "rideau"
+    ],
+    "building": true,
+    "fr": "Résidence Rideau se trouve au 290 Rideau Street.",
+    "en": "Rideau Residence is at 290 Rideau Street.",
+    "source": "https://www.uottawa.ca/campus-life/housing/rideau",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/rideau",
+    "address": "290 Rideau Street, Ottawa"
+  },
+  {
+    "id": "res-stanton",
+    "aliases": [
+      "stn",
+      "residence stanton",
+      "stanton residence",
+      "stanton"
+    ],
+    "building": true,
+    "fr": "Résidence Stanton se trouve au 100 University Private.",
+    "en": "Stanton Residence is at 100 University Private.",
+    "source": "https://www.uottawa.ca/campus-life/housing/stanton",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/stanton",
+    "address": "100 University Private, Ottawa"
+  },
+  {
+    "id": "res-thompson",
+    "aliases": [
+      "thn",
+      "residence thompson",
+      "thompson residence",
+      "thompson"
+    ],
+    "building": true,
+    "fr": "Résidence Thompson se trouve au 45 University Private.",
+    "en": "Thompson Residence is at 45 University Private.",
+    "source": "https://www.uottawa.ca/campus-life/housing/thompson",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement/thompson",
+    "address": "45 University Private, Ottawa"
+  },
+  {
+    "id": "538-king-edward-avenue",
+    "aliases": [
+      "538 king",
+      "538 king edward avenue",
+      "538 king edward"
+    ],
+    "building": true,
+    "fr": "538 King Edward Avenue se trouve au 538 King Edward Avenue.",
+    "en": "538 King Edward Avenue is at 538 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "538 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "540-king-edward-avenue",
+    "aliases": [
+      "540 king",
+      "540 king edward avenue",
+      "540 king edward"
+    ],
+    "building": true,
+    "fr": "540 King Edward Avenue se trouve au 540 King Edward Avenue.",
+    "en": "540 King Edward Avenue is at 540 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "540 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "542-king-edward-avenue",
+    "aliases": [
+      "542 king",
+      "542 king edward avenue",
+      "542 king edward"
+    ],
+    "building": true,
+    "fr": "542 King Edward Avenue se trouve au 542 King Edward Avenue.",
+    "en": "542 King Edward Avenue is at 542 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "542 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "544-king-edward-avenue",
+    "aliases": [
+      "544 king",
+      "544 king edward avenue",
+      "544 king edward"
+    ],
+    "building": true,
+    "fr": "544 King Edward Avenue se trouve au 544 King Edward Avenue.",
+    "en": "544 King Edward Avenue is at 544 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "544 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "554-king-edward-avenue",
+    "aliases": [
+      "554 king",
+      "554 king edward avenue",
+      "554 king edward"
+    ],
+    "building": true,
+    "fr": "554 King Edward Avenue se trouve au 554 King Edward Avenue.",
+    "en": "554 King Edward Avenue is at 554 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "554 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "556-king-edward-avenue",
+    "aliases": [
+      "556 king",
+      "556 king edward avenue",
+      "556 king edward"
+    ],
+    "building": true,
+    "fr": "556 King Edward Avenue se trouve au 556 King Edward Avenue.",
+    "en": "556 King Edward Avenue is at 556 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "556 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "575-king-edward-avenue",
+    "aliases": [
+      "575 king",
+      "575 king edward avenue",
+      "575 king edward"
+    ],
+    "building": true,
+    "fr": "575 King Edward Avenue se trouve au 575 King Edward Avenue.",
+    "en": "575 King Edward Avenue is at 575 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "575 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "577-king-edward-avenue",
+    "aliases": [
+      "577 king",
+      "577 king edward avenue",
+      "577 king edward"
+    ],
+    "building": true,
+    "fr": "577 King Edward Avenue se trouve au 577 King Edward Avenue.",
+    "en": "577 King Edward Avenue is at 577 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "577 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "585-king-edward-avenue",
+    "aliases": [
+      "585 king",
+      "585 king edward avenue",
+      "585 king edward"
+    ],
+    "building": true,
+    "fr": "585 King Edward Avenue se trouve au 585 King Edward Avenue.",
+    "en": "585 King Edward Avenue is at 585 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "585 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "631-king-edward-avenue",
+    "aliases": [
+      "631 king",
+      "631 king edward avenue",
+      "631 king edward"
+    ],
+    "building": true,
+    "fr": "631 King Edward Avenue se trouve au 631 King Edward Avenue.",
+    "en": "631 King Edward Avenue is at 631 King Edward Avenue.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "631 King Edward Avenue, Ottawa"
+  },
+  {
+    "id": "113-osgoode-street",
+    "aliases": [
+      "113 osgoode",
+      "113 osgoode street"
+    ],
+    "building": true,
+    "fr": "113 Osgoode Street se trouve au 113 Osgoode Street.",
+    "en": "113 Osgoode Street is at 113 Osgoode Street.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "113 Osgoode Street, Ottawa"
+  },
+  {
+    "id": "178-laurier-avenue-east",
+    "aliases": [
+      "178 laurier",
+      "178 laurier avenue east"
+    ],
+    "building": true,
+    "fr": "178 Laurier Avenue East se trouve au 178 Laurier Avenue East.",
+    "en": "178 Laurier Avenue East is at 178 Laurier Avenue East.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "178 Laurier Avenue East, Ottawa"
+  },
+  {
+    "id": "190-laurier-avenue-east",
+    "aliases": [
+      "190 laurier",
+      "190 laurier avenue east"
+    ],
+    "building": true,
+    "fr": "190 Laurier Avenue East se trouve au 190 Laurier Avenue East.",
+    "en": "190 Laurier Avenue East is at 190 Laurier Avenue East.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/king-edward-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-king-edward",
+    "address": "190 Laurier Avenue East, Ottawa"
+  },
+  {
+    "id": "143-seraphin-marion-private",
+    "aliases": [
+      "143 seraphin marion",
+      "143 seraphin marion private"
+    ],
+    "building": true,
+    "fr": "143 Séraphin-Marion Private se trouve au 143 Séraphin-Marion Private.",
+    "en": "143 Séraphin-Marion Private is at 143 Séraphin-Marion Private.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/seraphin-marion-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-seraphin-marion",
+    "address": "143 Séraphin-Marion Private, Ottawa"
+  },
+  {
+    "id": "145-seraphin-marion-private",
+    "aliases": [
+      "145 seraphin marion",
+      "145 seraphin marion private",
+      "mashkawaziwogamig",
+      "indigenous resource centre",
+      "centre de ressources autochtones"
+    ],
+    "building": true,
+    "fr": "145 Séraphin-Marion Private se trouve au 145 Séraphin-Marion Private.",
+    "en": "145 Séraphin-Marion Private is at 145 Séraphin-Marion Private.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/seraphin-marion-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-seraphin-marion",
+    "address": "145 Séraphin-Marion Private, Ottawa"
+  },
+  {
+    "id": "147-seraphin-marion-private",
+    "aliases": [
+      "147 seraphin marion",
+      "147 seraphin marion private"
+    ],
+    "building": true,
+    "fr": "147 Séraphin-Marion Private se trouve au 147 Séraphin-Marion Private.",
+    "en": "147 Séraphin-Marion Private is at 147 Séraphin-Marion Private.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/seraphin-marion-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-seraphin-marion",
+    "address": "147 Séraphin-Marion Private, Ottawa"
+  },
+  {
+    "id": "155-seraphin-marion-private",
+    "aliases": [
+      "155 seraphin marion",
+      "155 seraphin marion private"
+    ],
+    "building": true,
+    "fr": "155 Séraphin-Marion Private se trouve au 155 Séraphin-Marion Private.",
+    "en": "155 Séraphin-Marion Private is at 155 Séraphin-Marion Private.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/seraphin-marion-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-seraphin-marion",
+    "address": "155 Séraphin-Marion Private, Ottawa"
+  },
+  {
+    "id": "157-seraphin-marion-private",
+    "aliases": [
+      "157 seraphin marion",
+      "157 seraphin marion private",
+      "alex trebek alumni hall",
+      "pavillon alex trebek",
+      "alex trebek"
+    ],
+    "building": true,
+    "fr": "157 Séraphin-Marion Private se trouve au 157 Séraphin-Marion Private.",
+    "en": "157 Séraphin-Marion Private is at 157 Séraphin-Marion Private.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/seraphin-marion-buildings",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/batiments-seraphin-marion",
+    "address": "157 Séraphin-Marion Private, Ottawa"
+  },
+  {
+    "id": "geegees-field",
+    "aliases": [
+      "terrain",
+      "terrain des gee gees",
+      "gee gees field",
+      "terrain gee gees",
+      "terrain lees"
+    ],
+    "building": true,
+    "fr": "Terrain des Gee-Gees se trouve au 200 Lees Avenue, Ottawa.",
+    "en": "Gee-Gees Field is at 200 Lees Avenue, Ottawa.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/200-lees-block-a-e",
+    "address": "200 Lees Avenue, Ottawa"
   }
 ]
