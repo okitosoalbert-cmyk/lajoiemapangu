@@ -66,12 +66,13 @@
       "admission",
       "admissions",
       "admissibilite",
-      "apply",
-      "application",
-      "programmes",
-      "programs",
       "undergraduate",
-      "premier cycle"
+      "premier cycle",
+      "apply for admission",
+      "apply to uottawa",
+      "application for admission",
+      "programmes d etudes",
+      "degree programs"
     ],
     "fr": "Pour une admission au premier cycle, choisissez votre programme et consultez les exigences qui correspondent à votre profil. Les liens vers les programmes et l’information d’admission figurent sur la page officielle.",
     "en": "For undergraduate admission, choose a program and check the requirements for your applicant profile. The official page links to programs and admission information.",
