@@ -1,0 +1,402 @@
+[
+  {
+    "locale": "fr-CA",
+    "name": "French"
+  },
+  {
+    "locale": "en-CA",
+    "name": "English"
+  },
+  {
+    "locale": "zh-CN",
+    "name": "Mandarin Chinese (Simplified)"
+  },
+  {
+    "locale": "ja-JP",
+    "name": "Japanese"
+  },
+  {
+    "locale": "es-ES",
+    "name": "Spanish"
+  },
+  {
+    "locale": "hi-IN",
+    "name": "Hindi"
+  },
+  {
+    "locale": "ar-SA",
+    "name": "Arabic"
+  },
+  {
+    "locale": "bn-BD",
+    "name": "Bengali"
+  },
+  {
+    "locale": "pt-BR",
+    "name": "Brazilian Portuguese"
+  },
+  {
+    "locale": "ru-RU",
+    "name": "Russian"
+  },
+  {
+    "locale": "ur-PK",
+    "name": "Urdu"
+  },
+  {
+    "locale": "id-ID",
+    "name": "Indonesian"
+  },
+  {
+    "locale": "de-DE",
+    "name": "German"
+  },
+  {
+    "locale": "pa-IN",
+    "name": "Punjabi"
+  },
+  {
+    "locale": "mr-IN",
+    "name": "Marathi"
+  },
+  {
+    "locale": "te-IN",
+    "name": "Telugu"
+  },
+  {
+    "locale": "tr-TR",
+    "name": "Turkish"
+  },
+  {
+    "locale": "ta-IN",
+    "name": "Tamil"
+  },
+  {
+    "locale": "vi-VN",
+    "name": "Vietnamese"
+  },
+  {
+    "locale": "ko-KR",
+    "name": "Korean"
+  },
+  {
+    "locale": "yue-HK",
+    "name": "Cantonese"
+  },
+  {
+    "locale": "it-IT",
+    "name": "Italian"
+  },
+  {
+    "locale": "fa-IR",
+    "name": "Persian"
+  },
+  {
+    "locale": "th-TH",
+    "name": "Thai"
+  },
+  {
+    "locale": "gu-IN",
+    "name": "Gujarati"
+  },
+  {
+    "locale": "pl-PL",
+    "name": "Polish"
+  },
+  {
+    "locale": "uk-UA",
+    "name": "Ukrainian"
+  },
+  {
+    "locale": "ml-IN",
+    "name": "Malayalam"
+  },
+  {
+    "locale": "kn-IN",
+    "name": "Kannada"
+  },
+  {
+    "locale": "or-IN",
+    "name": "Odia"
+  },
+  {
+    "locale": "my-MM",
+    "name": "Burmese"
+  },
+  {
+    "locale": "fil-PH",
+    "name": "Filipino"
+  },
+  {
+    "locale": "ro-RO",
+    "name": "Romanian"
+  },
+  {
+    "locale": "nl-NL",
+    "name": "Dutch"
+  },
+  {
+    "locale": "ha-NG",
+    "name": "Hausa"
+  },
+  {
+    "locale": "sw-KE",
+    "name": "Swahili"
+  },
+  {
+    "locale": "su-ID",
+    "name": "Sundanese"
+  },
+  {
+    "locale": "yo-NG",
+    "name": "Yoruba"
+  },
+  {
+    "locale": "ig-NG",
+    "name": "Igbo"
+  },
+  {
+    "locale": "am-ET",
+    "name": "Amharic"
+  },
+  {
+    "locale": "om-ET",
+    "name": "Oromo"
+  },
+  {
+    "locale": "ne-NP",
+    "name": "Nepali"
+  },
+  {
+    "locale": "si-LK",
+    "name": "Sinhala"
+  },
+  {
+    "locale": "km-KH",
+    "name": "Khmer"
+  },
+  {
+    "locale": "lo-LA",
+    "name": "Lao"
+  },
+  {
+    "locale": "ms-MY",
+    "name": "Malay"
+  },
+  {
+    "locale": "jv-ID",
+    "name": "Javanese"
+  },
+  {
+    "locale": "ceb-PH",
+    "name": "Cebuano"
+  },
+  {
+    "locale": "hmn-US",
+    "name": "Hmong"
+  },
+  {
+    "locale": "af-ZA",
+    "name": "Afrikaans"
+  },
+  {
+    "locale": "az-AZ",
+    "name": "Azerbaijani"
+  },
+  {
+    "locale": "uz-UZ",
+    "name": "Uzbek"
+  },
+  {
+    "locale": "kk-KZ",
+    "name": "Kazakh"
+  },
+  {
+    "locale": "ky-KG",
+    "name": "Kyrgyz"
+  },
+  {
+    "locale": "tg-TJ",
+    "name": "Tajik"
+  },
+  {
+    "locale": "tk-TM",
+    "name": "Turkmen"
+  },
+  {
+    "locale": "mn-MN",
+    "name": "Mongolian"
+  },
+  {
+    "locale": "ps-AF",
+    "name": "Pashto"
+  },
+  {
+    "locale": "ku-TR",
+    "name": "Kurmanji Kurdish"
+  },
+  {
+    "locale": "ckb-IQ",
+    "name": "Central Kurdish"
+  },
+  {
+    "locale": "sd-PK",
+    "name": "Sindhi"
+  },
+  {
+    "locale": "as-IN",
+    "name": "Assamese"
+  },
+  {
+    "locale": "bho-IN",
+    "name": "Bhojpuri"
+  },
+  {
+    "locale": "mai-IN",
+    "name": "Maithili"
+  },
+  {
+    "locale": "ug-CN",
+    "name": "Uyghur"
+  },
+  {
+    "locale": "kok-IN",
+    "name": "Konkani"
+  },
+  {
+    "locale": "so-SO",
+    "name": "Somali"
+  },
+  {
+    "locale": "rw-RW",
+    "name": "Kinyarwanda"
+  },
+  {
+    "locale": "rn-BI",
+    "name": "Kirundi"
+  },
+  {
+    "locale": "sn-ZW",
+    "name": "Shona"
+  },
+  {
+    "locale": "zu-ZA",
+    "name": "Zulu"
+  },
+  {
+    "locale": "xh-ZA",
+    "name": "Xhosa"
+  },
+  {
+    "locale": "st-ZA",
+    "name": "Sesotho"
+  },
+  {
+    "locale": "ts-ZA",
+    "name": "Tsonga"
+  },
+  {
+    "locale": "mg-MG",
+    "name": "Malagasy"
+  },
+  {
+    "locale": "ny-MW",
+    "name": "Chichewa"
+  },
+  {
+    "locale": "ln-CD",
+    "name": "Lingala"
+  },
+  {
+    "locale": "wo-SN",
+    "name": "Wolof"
+  },
+  {
+    "locale": "ff-SN",
+    "name": "Fula"
+  },
+  {
+    "locale": "ak-GH",
+    "name": "Akan"
+  },
+  {
+    "locale": "ti-ET",
+    "name": "Tigrinya"
+  },
+  {
+    "locale": "ht-HT",
+    "name": "Haitian Creole"
+  },
+  {
+    "locale": "qu-PE",
+    "name": "Quechua"
+  },
+  {
+    "locale": "el-GR",
+    "name": "Greek"
+  },
+  {
+    "locale": "cs-CZ",
+    "name": "Czech"
+  },
+  {
+    "locale": "sv-SE",
+    "name": "Swedish"
+  },
+  {
+    "locale": "hu-HU",
+    "name": "Hungarian"
+  },
+  {
+    "locale": "he-IL",
+    "name": "Hebrew"
+  },
+  {
+    "locale": "sr-RS",
+    "name": "Serbian"
+  },
+  {
+    "locale": "bg-BG",
+    "name": "Bulgarian"
+  },
+  {
+    "locale": "da-DK",
+    "name": "Danish"
+  },
+  {
+    "locale": "fi-FI",
+    "name": "Finnish"
+  },
+  {
+    "locale": "sk-SK",
+    "name": "Slovak"
+  },
+  {
+    "locale": "nb-NO",
+    "name": "Norwegian Bokmål"
+  },
+  {
+    "locale": "hr-HR",
+    "name": "Croatian"
+  },
+  {
+    "locale": "bs-BA",
+    "name": "Bosnian"
+  },
+  {
+    "locale": "sq-AL",
+    "name": "Albanian"
+  },
+  {
+    "locale": "ka-GE",
+    "name": "Georgian"
+  },
+  {
+    "locale": "hy-AM",
+    "name": "Armenian"
+  },
+  {
+    "locale": "be-BY",
+    "name": "Belarusian"
+  }
+]
