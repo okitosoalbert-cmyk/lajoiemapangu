@@ -37,7 +37,7 @@ Chrome mémorise le choix sur ce PC et le mode se réactive à la prochaine ouve
 
 ## Configuration et limites
 
-- **Corpus** · 76 fiches et entrées locales avec sources universitaires consultées le 20 novembre 2026. La carte officielle est externe. La base complète du campus et l’actualisation automatique restent à réaliser. L’itinéraire Google Maps part de l’emplacement choisi sur le téléphone.
+- **Corpus** · 92 fiches et entrées locales avec sources universitaires consultées le 20 novembre 2026. La carte officielle est externe. La base complète du campus et l’actualisation automatique restent à réaliser. L’itinéraire Google Maps part de l’emplacement choisi sur le téléphone.
 - **Langue** · Les libellés suivent le choix FR/EN et les questions écrites passent par une détection simple de langue. La dictée utilise la langue choisie dans le navigateur. La synthèse suit la langue de chaque réponse et possède son propre volume.
 - **Voix** · Chromium et le système doivent fournir la reconnaissance et la synthèse. Le navigateur peut utiliser un service distant pour la dictée. En mode manuel, la transcription reste dans le champ pour correction. En mode automatique, elle est envoyée lorsque Chrome termine la transcription. La séparation du bruit ambiant et la détection automatique de la langue parlée restent à valider ou à développer.
 - **Veille et présence** · Le prototype affiche le logo INNOVA en veille. Dans ce mode, le navigateur détecte les changements dans le centre de l’image localement, sans modèle à télécharger. Les images ne transitent pas par Flask. La caméra reste active en mode automatique, y compris pendant la conversation, pour détecter le départ et le retour. Le bouton tactile reste disponible.
@@ -112,3 +112,7 @@ La dictée automatique regroupe les fragments après environ 1,7 seconde de sile
 Choisis une langue dans **Langue parlée**. Le mandarin et le japonais sont en tête, et le sélecteur propose 100 langues courantes. La borne conserve les menus FR/EN. Les questions et les réponses dans les autres langues utilisent Gemini, avec une clé configurée. Les indications de campus suivent les fiches locales ou les sources officielles, puis la réponse est traduite. La carte et les liens restent disponibles. La dictée et la voix locale dépendent des langues prises en charge par Chrome et Windows, donc certaines langues sont disponibles uniquement au clavier avec cette configuration.
 
 Lorsque le son est activé, INNOVA utilise automatiquement la voix Gemini. Le texte de la réponse est envoyé à Google pour la synthèse, ce qui peut ajouter du délai et utiliser ton quota. Si Gemini est indisponible pour la lecture, la borne essaie la voix de Chrome. Le bouton haut-parleur permet de couper la lecture.
+
+## Histoire d’uOttawa et des Gee-Gees
+
+Seize fiches historiques bilingues sont accessibles hors ligne. Essaie « Quand l’Université d’Ottawa a-t-elle été fondée ? », « Que s’est-il passé en 1903 ? » après une question d’histoire, « Quand les Gee-Gees ont-ils gagné la Coupe Vanier ? », ou « Qui a gagné le Match Panda en 2014 ? ». Les fiches indiquent leur source et les résultats sportifs sont limités aux éditions documentées.
