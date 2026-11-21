@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const expectedInstance = new URLSearchParams(location.search).get("instance");
 const translations = {
   fr: {
     campus: "UNIVERSITÉ D’OTTAWA", finish: "Terminer", eyebrow: "GUIDE DU CAMPUS", heading: "Bonjour, je suis Innova.",
@@ -249,6 +250,14 @@ async function ask(text) {
   const timeout = setTimeout(() => controller.abort(), 12500);
   try {
     const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation, exchange: generalExchange}), signal: controller.signal});
+    if (expectedInstance && response.headers.get("X-INNOVA-Instance") !== expectedInstance) {
+      if (pending === controller) {
+        $("notice").textContent = lang === "fr"
+          ? "Cet onglet ne reçoit pas les réponses du serveur qui l’a ouvert. Ferme-le et relance INNOVA."
+          : "This tab is receiving replies from a different server. Close it and restart INNOVA.";
+      }
+      return;
+    }
     if (!response.ok) throw Error("Request failed");
     const result = await response.json();
     if (pending !== controller) return;
