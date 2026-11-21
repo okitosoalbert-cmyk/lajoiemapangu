@@ -157,11 +157,19 @@ def lookup(question, lang):
         message = (f'La page uOttawa « {title} » indique ceci. « {block} »'
                    if lang == "fr" else f'The uOttawa page “{title}” says, “{block}”')
     else:
-        url, title, _ = pages[0]
+        relevant_titles = [(url, title) for url, title, _ in pages
+                           if len(search & terms(title)) >= min(2, len(search))]
+        if not relevant_titles:
+            return None
+        url, title = relevant_titles[0]
         message = (f"J’ai trouvé la page officielle « {title} ». Ouvre-la pour consulter les détails."
                    if lang == "fr" else f"I found the official page “{title}.” Open it to check the details.")
-    return {
-        "text": message, "source": url, "source_title": title,
-        "related": [{"url": page_url, "title": page_title}
-                    for page_url, page_title in dict.fromkeys((p[0], p[1]) for p in pages) if page_url != url],
-    }
+    related = []
+    seen_titles = {title.casefold()}
+    for page_url, page_title, _ in pages:
+        normalized_title = page_title.casefold()
+        if (page_url != url and normalized_title not in seen_titles
+                and len(search & terms(page_title)) >= min(2, len(search))):
+            related.append({"url": page_url, "title": page_title})
+            seen_titles.add(normalized_title)
+    return {"text": message, "source": url, "source_title": title, "related": related}
