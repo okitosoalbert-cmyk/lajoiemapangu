@@ -17,6 +17,9 @@ if not exist ".venv\Scripts\python.exe" (
 echo Installation des dependances si necessaire...
 ".venv\Scripts\python.exe" -m pip install -r requirements.txt
 if errorlevel 1 goto install_failed
+if not defined GEMINI_API_KEY if not exist "%LOCALAPPDATA%\INNOVA\gemini-key.txt" if not exist "%LOCALAPPDATA%\INNOVA\gemini-setup-seen" (
+  if exist "Configurer-Gemini.bat" call "Configurer-Gemini.bat" lancement
+)
 echo.
 echo Ouvre http://127.0.0.1:5100/?borne dans Chrome.
 echo Garde cette fenetre ouverte pendant la demonstration.
