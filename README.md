@@ -37,7 +37,7 @@ Chrome mémorise le choix sur ce PC et le mode se réactive à la prochaine ouve
 
 ## Configuration et limites
 
-- **Corpus** · 75 fiches et entrées locales avec sources universitaires consultées le 20 novembre 2026. La carte officielle est externe. La base complète du campus et l’actualisation automatique restent à réaliser. L’itinéraire Google Maps part de l’emplacement choisi sur le téléphone.
+- **Corpus** · 76 fiches et entrées locales avec sources universitaires consultées le 20 novembre 2026. La carte officielle est externe. La base complète du campus et l’actualisation automatique restent à réaliser. L’itinéraire Google Maps part de l’emplacement choisi sur le téléphone.
 - **Langue** · Les libellés suivent le choix FR/EN et les questions écrites passent par une détection simple de langue. La dictée utilise la langue choisie dans le navigateur. La synthèse suit la langue de chaque réponse et possède son propre volume.
 - **Voix** · Chromium et le système doivent fournir la reconnaissance et la synthèse. Le navigateur peut utiliser un service distant pour la dictée. En mode manuel, la transcription reste dans le champ pour correction. En mode automatique, elle est envoyée lorsque Chrome termine la transcription. La séparation du bruit ambiant et la détection automatique de la langue parlée restent à valider ou à développer.
 - **Veille et présence** · Le prototype affiche le logo INNOVA en veille. Dans ce mode, le navigateur détecte les changements dans le centre de l’image localement, sans modèle à télécharger. Les images ne transitent pas par Flask et la caméra se coupe au réveil. Le bouton tactile reste disponible.
