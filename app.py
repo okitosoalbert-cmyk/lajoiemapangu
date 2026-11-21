@@ -8,6 +8,8 @@ import secrets
 import sqlite3
 import time
 import unicodedata
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -30,7 +32,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r12"
+BUILD = "2026.11.21-r13"
 SPEECH_MODEL = "gemini-3.8-flash-tts"
 LANGUAGES = {item["locale"]: item["name"] for item in json.loads((ROOT / "static" / "languages.json").read_text(encoding="utf-8"))}
 INSTANCE = secrets.token_hex(6)
@@ -219,13 +221,55 @@ def gemini_http_error(error):
     return "network" if error.code >= 500 else "response"
 
 
+OTTAWA = ZoneInfo("America/Toronto")
+MONTHS_FR = ("janvier", "février", "mars", "avril", "mai", "juin",
+             "juillet", "août", "septembre", "octobre", "novembre", "décembre")
+MONTHS_EN = ("January", "February", "March", "April", "May", "June",
+             "July", "August", "September", "October", "November", "December")
+CLOCK_QUESTION = re.compile(
+    r"(?:(?:on est|nous sommes) (?:le )?(?:quel jour|quelle date|combien)|"
+    r"(?:quelle est la date|quelle date sommes nous|quel jour sommes nous|quel jour est on|"
+    r"c est quoi la date|la date d aujourd hui|date d aujourd hui|quelle date|quel jour)(?: aujourd hui)?|"
+    r"(?:what is|what s) (?:the date(?: today)?|today s date|today s day)|"
+    r"what (?:day|date) is (?:it|today)|today s date|en quelle annee sommes nous|what year is it|"
+    r"quelle heure est il(?: a ottawa)?|il est quelle heure(?: a ottawa)?|"
+    r"what time is it(?: in ottawa)?)(?: a ottawa| in ottawa)?"
+)
+
+
+def ottawa_now():
+    return datetime.now(OTTAWA)
+
+
+def clock_reply(question, lang, now):
+    if not CLOCK_QUESTION.fullmatch(question):
+        return None
+    if "heure" in question or question.startswith("what time"):
+        if lang == "fr":
+            minutes = f" {now.minute:02d}" if now.minute else ""
+            return f"Il est {now.hour} h{minutes} à Ottawa."
+        return f"It’s {now.hour % 12 or 12}:{now.minute:02d} {'a.m.' if now.hour < 12 else 'p.m.'} in Ottawa."
+    if "annee" in question or question == "what year is it":
+        return f"On est en {now.year}." if lang == "fr" else f"It’s {now.year}."
+    if lang == "fr":
+        day = str(now.day) if now.day != 1 else "1er"
+        return f"Aujourd’hui à Ottawa, on est le {day} {MONTHS_FR[now.month - 1]} {now.year}."
+    return f"Today in Ottawa is {MONTHS_EN[now.month - 1]} {now.day}, {now.year}."
+
+
 def generate_gemini(key, instruction, contents, schema=None):
     model = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
     config = {"maxOutputTokens": 400}
     if schema:
         config.update(responseMimeType="application/json", responseSchema=schema)
+    clock = ottawa_now()
+    grounded = (
+        f"The kiosk clock in Ottawa (America/Toronto) reads {clock.isoformat(timespec='minutes')}. "
+        "Use this date for relative time references. The clock does not verify current campus schedules, "
+        "deadlines, fees or events. Do not assume that historical examples are current. "
+    )
     payload = {
-        "systemInstruction": {"parts": [{"text": instruction}]},
+        "systemInstruction": {"parts": [{"text": grounded + instruction}]},
         "contents": contents,
         "generationConfig": config,
     }
@@ -493,11 +537,11 @@ def history_answer(text, lang, catalog, matches, previous):
     history_context = university or sports or bool(earlier.get("history"))
     years = {int(year) for year in re.findall(r"\b(?:18|19|20)\d{2}\b", text)}
     if (sports or any(record.get("history_group") in {"panda", "rugby", "soccer", "vanier"} for record in records)) and not years and re.search(
-        r"\b(prochain(?:e)?|upcoming|next game|next match|today|aujourd hui|billets?|tickets?)\b", text
+        r"\b(prochain(?:e)?|dernier match|derniere victoire|derniere defaite|dernier resultat|latest|most recent|last game|last match|upcoming|next game|next match|today|aujourd hui|billets?|tickets?)\b", text
     ):
         return {
-            "text": ("Le calendrier et la billetterie des Gee-Gees se trouvent sur le site officiel des équipes."
-                     if lang == "fr" else "The official Gee-Gees site has the team schedules and ticket information."),
+            "text": ("Les résultats récents, les calendriers et la billetterie sont sur le site officiel des Gee-Gees."
+                     if lang == "fr" else "The official Gee-Gees site has recent results, team schedules and ticket information."),
             "source": "https://www.geegees.ca/",
             "source_title": "Site officiel des Gee-Gees" if lang == "fr" else "Official Gee-Gees website",
         }
@@ -565,7 +609,11 @@ def answer_question(question, data, *, use_gemini=True):
             operator, total = "−", a - b
         return jsonify(lang=lang, text=f"{a} {operator} {b} = {total}.", general=True)
     text = f" {normalize(question)} "
-    schedule = course_request(question, data.get("previous"))
+    now = ottawa_now()
+    clock_answer = clock_reply(text.strip(), lang, now)
+    if clock_answer:
+        return jsonify(lang=lang, text=clock_answer, general=True)
+    schedule = course_request(question, data.get("previous"), today=now.date())
     if schedule:
         return jsonify(lookup_course(schedule, lang))
     catalog = facts()

@@ -23,7 +23,7 @@ def fold(value):
     return "".join(c for c in unicodedata.normalize("NFKD", value.casefold()) if not unicodedata.combining(c))
 
 
-def course_request(text, previous=None):
+def course_request(text, previous=None, *, today=None):
     plain = fold(text)
     match = next((m for m in COURSE.finditer(text) if m[1].lower() not in SKIP_PREFIX), None)
     code = (match[1] + match[2]).upper() if match else ""
@@ -31,6 +31,10 @@ def course_request(text, previous=None):
     year = re.search(r"\b20\d{2}\b", plain)
     if match and year and match.start() <= year.start() < match.end():
         year = re.search(r"\b20\d{2}\b", plain[:match.start()] + " " + plain[match.end():])
+    current_term = re.search(
+        r"\b(?:ce trimestre(?: ci)?|cette session(?: ci)?|trimestre (?:actuel|en cours)|"
+        r"session (?:actuelle|en cours)|this (?:term|semester)|current (?:term|semester))\b", plain
+    )
     section = re.search(r"(?:section|groupe|group)\s+([a-z]{1,3}\d{1,3})\b", plain)
     is_schedule = re.search(r"\b(cours|course[s]?|class(?:es)?|enseigne\w*|teach\w*|offert\w*|horaire|prof\w*|instructor)\b", plain)
     instructor = ""
@@ -50,12 +54,17 @@ def course_request(text, previous=None):
             instructor = ""
     previous_code = previous[7:] if isinstance(previous,str) and previous.startswith("course:") else ""
     if not code and previous_code and COURSE.fullmatch(previous_code) and (
-        season or section or re.search(r"\b(et lui|le prof|et le prof|quel prof|quelle session|which term|who teaches it)\b", plain)
+        season or current_term or section or re.search(r"\b(et lui|le prof|et le prof|quel prof|quelle session|which term|who teaches it)\b", plain)
     ):
         code = previous_code
     if not code and not instructor:
         return None
-    return code, instructor, SEASONS.get(season[1], season[1]) if season else "", year[0] if year else "", section[1].upper() if section else ""
+    season_name = SEASONS.get(season[1], season[1]) if season else ""
+    year_text = year[0] if year else ""
+    if today and current_term and not season_name and not year_text:
+        season_name = "winter" if today.month <= 4 else "summer" if today.month <= 8 else "fall"
+        year_text = str(today.year)
+    return code, instructor, season_name, year_text, section[1].upper() if section else ""
 
 
 def same_service(url):
