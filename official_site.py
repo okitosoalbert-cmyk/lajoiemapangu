@@ -20,7 +20,7 @@ a au aux ce cet cette ces c est ici ca dans de des du el elle en et eux faire fa
 i il ils je la le les leur ma me mes moi mon ne nos notre nous on ou par pas peut peu
 pour pourquoi qu quand que quel quelle quelles quels qui s sa se ses si son sur t ta
 te tes toi ton tu un une vos votre vous veux voudrais trouve trouver besoin comment
-comment savoir puis peux doit dois avoir obtenir demande etudiant etudiante universite uottawa
+comment savoir combien font fois puis peux doit dois avoir obtenir demande etudiant etudiante universite uottawa
 about am an and are at be can could do does for from get give go have help how i in
 is it me my of on or our please should show tell that the their there these this to
 uottawa us want was what when where which who will with would you your university ottawa
