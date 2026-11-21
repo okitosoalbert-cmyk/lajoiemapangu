@@ -50,24 +50,24 @@ const maps = {
   en: "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 };
 const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisset", food: "food", campus: "services", admission: "Admission"};
-let lang = "fr", sound = false, state = "ready", items = [], lastTopic, confirmation, generalExchange, activity, pending, recognition, stream;
+let lang = "fr", sound = true, state = "ready", items = [], lastTopic, confirmation, generalExchange, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
-let audioActive = false, echoUntil = 0, speechTimer;
-let speechLocale = "fr-CA", cloudPlayback, speechReveal;
+let audioActive = false, recentSpeech, revealTimer;
+let speechLocale = "fr-CA", speechReveal;
 try {
   speechLocale = localStorage.getItem("innova-speech-locale") || speechLocale;
 } catch {}
 const ABSENCE_MS = 5000;
-const SPEECH_PAUSE_MS = 1700;
-let voiceDraft = "", voiceDraftTimer;
+const SPEECH_PAUSE_MS = 1200;
+const REPLY_TARGET_MS = 1900;
+let voiceDraft = "", voiceDraftTimer, voiceRevision = 0;
 const microphone = {
   audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true},
   video: false,
 };
 try { automatic = localStorage.getItem("innova-auto-v2") === "true"; } catch {}
-if (automatic) sound = true;
 const copy = () => translations[lang];
 const speechPreview = document.createElement("div");
 speechPreview.id = "speechPreview";
@@ -127,18 +127,21 @@ function updateAutomatic() {
 function clearVoiceDraft() {
   clearTimeout(voiceDraftTimer);
   voiceDraft = "";
+  voiceRevision++;
   speechPreview.textContent = "";
 }
 
-function sendVoiceDraftAfter(delay = SPEECH_PAUSE_MS) {
+function sendVoiceDraftAfter(lastSpeechAt = performance.now()) {
   clearTimeout(voiceDraftTimer);
   if (!voiceDraft) return;
   voiceDraftTimer = setTimeout(() => {
     const text = normalizeDictation(voiceDraft).slice(0, 500);
     clearVoiceDraft();
     if (!document.hidden && !$("idle").open && !$("summary").open &&
-        !pending && !utterance && !$("question").value.trim()) ask(text);
-  }, delay);
+        !pending && !utterance && !$("question").value.trim()) {
+      ask(text, lastSpeechAt);
+    }
+  }, Math.max(0, lastSpeechAt + SPEECH_PAUSE_MS - performance.now()));
 }
 
 function stopListening() {
@@ -161,7 +164,6 @@ function scheduleListening(delay = 500) {
   }, delay);
 }
 const svg = (name) => '<svg aria-hidden="true" viewBox="0 0 24 24">' + paths[name] + '</svg>';
-const speech = window.speechSynthesis;
 $("volume").value = "0.65";
 const viewer = document.querySelector("model-viewer");
 const mascot = window.createMascot($("avatar"));
@@ -281,41 +283,45 @@ function releaseCloudPlayback(job) {
     job.audio.removeAttribute("src");
   }
   if (job.url) URL.revokeObjectURL(job.url);
-  if (cloudPlayback === job) cloudPlayback = undefined;
 }
 
 function revealSpeechReply() {
+  clearTimeout(revealTimer);
   const reveal = speechReveal;
   speechReveal = undefined;
   reveal?.();
 }
 
 function stopVoice() {
-  clearTimeout(speechTimer);
   revealSpeechReply();
   if (!utterance) return;
-  echoUntil = performance.now() + 350;
+  const job = utterance;
   utterance = undefined;
-  if (cloudPlayback) releaseCloudPlayback(cloudPlayback);
-  else speech?.cancel();
+  if (job.started) recentSpeech = {text: job.text, until: performance.now() + 550};
+  releaseCloudPlayback(job);
 }
 
-async function say(text, replyLang, spoken, reveal) {
+async function say(text, replyLang, spoken, reveal, replyDeadline) {
   stopVoice();
   speechReveal = reveal;
   if (!sound) { revealSpeechReply(); return; }
+  if (replyDeadline) {
+    revealTimer = setTimeout(revealSpeechReply, Math.max(0, replyDeadline - performance.now()));
+  }
   const target = spoken || (replyLang === "fr" ? "fr-CA" : "en-CA");
-  const job = {controller: new AbortController()};
-  cloudPlayback = utterance = job;
+  const job = {controller: new AbortController(), text};
+  utterance = job;
   status("speechStarting");
-  const fallback = () => {
+  const unavailable = () => {
     if (utterance !== job) return;
-    utterance = undefined;
-    releaseCloudPlayback(job);
+    stopVoice();
+    $("notice").textContent = lang === "fr"
+      ? "Voix Gemini indisponible. La réponse reste affichée."
+      : "Gemini voice is unavailable. The written reply is still shown.";
     listeningStatus();
-    sayLocal(text, target);
+    scheduleListening();
   };
-  const limit = setTimeout(fallback, 13000);
+  const limit = setTimeout(unavailable, 13000);
   try {
     const response = await fetch("/api/speech", {
       method: "POST", headers: {"Content-Type":"application/json"},
@@ -329,6 +335,7 @@ async function say(text, replyLang, spoken, reveal) {
     job.audio.volume = Number($("volume").value);
     job.audio.onplaying = () => {
       if (utterance !== job) return;
+      job.started = true;
       status("speaking");
       revealSpeechReply();
       animate(/speak|talk|parl|mouth/i);
@@ -338,87 +345,43 @@ async function say(text, replyLang, spoken, reveal) {
     };
     job.audio.onended = () => {
       if (utterance !== job) return;
-      utterance = undefined;
-      releaseCloudPlayback(job);
-      revealSpeechReply();
-      echoUntil = performance.now() + 350;
+      stopVoice();
       listeningStatus();
       animate(/idle|repos/i);
       scheduleListening();
     };
-    job.audio.onerror = fallback;
+    job.audio.onerror = unavailable;
     await job.audio.play();
   } catch {
-    fallback();
+    unavailable();
   } finally {
     clearTimeout(limit);
   }
 }
 
-function sayLocal(text, locale) {
-  if (!sound || !speech) { revealSpeechReply(); return; }
-  const replyLang = locale.split("-")[0];
-  const installed = (speech.getVoices?.() || []).filter(voice => voice.localService);
-  const preferredVoice = installed.find(voice => voice.lang.toLowerCase() === locale.toLowerCase()) ||
-    installed.find(voice => voice.lang.toLowerCase().startsWith(replyLang + "-"));
-  const segments = [];
-  let segment = "";
-  for (const word of text.trim().split(/\s+/)) {
-    if (segment && (segment.length + word.length > 150 || (segment.length > 65 && /[.!?]$/.test(segment)))) {
-      segments.push(segment);
-      segment = "";
-    }
-    segment = segment ? segment + " " + word : word;
-  }
-  if (segment) segments.push(segment);
-  if (!segments.length) { revealSpeechReply(); return; }
-
-  function play(index) {
-    const voice = new SpeechSynthesisUtterance(segments[index]);
-    utterance = voice;
-    if (preferredVoice) voice.voice = preferredVoice;
-    voice.lang = preferredVoice?.lang || locale;
-    voice.volume = Number($("volume").value);
-    voice.rate = 0.94;
-    voice.onstart = () => {
-      if (utterance !== voice) return;
-      if (state !== "speaking") {
-        status("speaking");
-        animate(/speak|talk|parl|mouth/i);
-      }
-      revealSpeechReply();
-    };
-    const next = () => {
-      if (utterance !== voice) return;
-      clearTimeout(speechTimer);
-      if (index + 1 < segments.length) {
-        play(index + 1);
-        return;
-      }
-      utterance = undefined;
-      revealSpeechReply();
-      echoUntil = performance.now() + 350;
-      listeningStatus();
-      animate(/idle|repos/i);
-      scheduleListening();
-    };
-    voice.onend = next;
-    voice.onerror = next;
-    speechTimer = setTimeout(() => {
-      if (utterance !== voice) return;
-      utterance = undefined;
-      speech.cancel();
-      revealSpeechReply();
-      echoUntil = performance.now() + 350;
-      listeningStatus();
-      scheduleListening();
-    }, 20000);
-    try { speech.speak(voice); } catch { next(); }
-  }
-  play(0);
+function resemblesPlayback(transcript, playback) {
+  if (!playback) return false;
+  const words = value => value.normalize("NFKD").replace(/\p{M}/gu, "")
+    .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const heard = words(transcript), spoken = words(playback);
+  return !heard || (" " + spoken + " ").includes(" " + heard + " ") ||
+    (heard.length >= 4 && spoken.split(" ").some(word => word.startsWith(heard)));
 }
 
-async function ask(text) {
+function interruptForSpeech() {
+  if (pending) {
+    const previous = pending;
+    pending = undefined;
+    previous.abort();
+    $("send").disabled = false;
+  }
+  stopVoice();
+  touch();
+  listeningStatus();
+  animate(/idle|repos/i);
+}
+
+async function ask(text, lastSpeechAt) {
   text = text.trim();
   if (!text || pending) return;
   touch();
@@ -506,7 +469,7 @@ async function ask(text) {
       article.hidden = false;
       mascot?.play("nod");
       $("messages").scrollTop = $("messages").scrollHeight;
-    });
+    }, lastSpeechAt && lastSpeechAt + REPLY_TARGET_MS);
   } catch {
     if (pending === controller) $("notice").textContent = copy().failure;
   } finally {
@@ -528,7 +491,7 @@ function clearSession() {
   stopListening();
   speechReveal = undefined;
   stopVoice();
-  echoUntil = 0;
+  recentSpeech = undefined;
   $("send").disabled = false;
   $("messages").replaceChildren();
   $("suggestions").hidden = false;
@@ -819,14 +782,21 @@ function startListening(auto = false) {
   active.lang = speechLocale;
   active.interimResults = true;
   active.continuous = auto;
-  let ignoreSpeech = false;
-  const voiceBusy = () => Boolean(pending || utterance || performance.now() < echoUntil);
+  let offset = 0, nextOffset = 0, revision = voiceRevision;
+  let committed = voiceDraft, finalized = "", interim = "";
+  let endOfSpeech = false, lastSpeechAt = performance.now();
+  function updateDraft(includeInterim) {
+    voiceDraft = [committed, finalized, includeInterim ? interim : ""].filter(Boolean).join(" ").slice(0, 500);
+  }
   active.onspeechstart = () => {
-    ignoreSpeech = auto && voiceBusy();
-    if (auto && !ignoreSpeech) sendVoiceDraftAfter(3200);
+    endOfSpeech = false;
+    if (auto) clearTimeout(voiceDraftTimer);
   };
   active.onspeechend = () => {
-    if (auto && !ignoreSpeech) sendVoiceDraftAfter();
+    endOfSpeech = true;
+    if (!auto) return;
+    updateDraft(true);
+    sendVoiceDraftAfter(lastSpeechAt);
   };
   const startup = setTimeout(() => {
     if (recognition !== active) return;
@@ -839,7 +809,6 @@ function startListening(auto = false) {
     if (recognition === active) {
       audioActive = true;
       if (!pending && !utterance) {
-        $("notice").textContent = "";
         status("listening");
       }
     }
@@ -847,22 +816,44 @@ function startListening(auto = false) {
   active.onresult = (event) => {
     clearTimeout(startup);
     if (recognition !== active) return;
-    if (auto && (ignoreSpeech || voiceBusy() || $("question").value.trim())) {
-      speechPreview.textContent = "";
-      return;
+    if (auto && $("question").value.trim()) return;
+    if (revision !== voiceRevision) {
+      offset = nextOffset;
+      revision = voiceRevision;
+      committed = finalized = interim = "";
     }
-    const finalized = [], interim = [];
-    for (let i = event.resultIndex || 0; i < event.results.length; i++) {
+    const confirmed = [], partial = [];
+    const start = auto ? offset : event.resultIndex || 0;
+    for (let i = start; i < event.results.length; i++) {
       const result = event.results[i];
-      (result.isFinal ? finalized : interim).push(result[0].transcript);
+      (result.isFinal ? confirmed : partial).push(result[0].transcript);
     }
-    const text = finalized.join(" ").trim();
+    const text = confirmed.join(" ").trim();
     if (auto) {
-      if (text) voiceDraft = [voiceDraft, text].filter(Boolean).join(" ").slice(0, 500);
-      speechPreview.textContent = normalizeDictation([voiceDraft, ...interim].join(" ").trim());
-      sendVoiceDraftAfter(interim.length ? 3200 : SPEECH_PAUSE_MS);
+      const hypothesis = partial.join(" ").trim();
+      const candidate = [text, hypothesis].filter(Boolean).join(" ");
+      if (!candidate) return;
+      const playback = utterance?.started ? utterance.text :
+        recentSpeech?.until > performance.now() ? recentSpeech.text : "";
+      if (!committed && !finalized && !interim && resemblesPlayback(candidate, playback)) {
+        // Drop finalized echo. Keep interim indices so a corrected hypothesis can interrupt.
+        offset = Math.max(offset, event.results.length - partial.length);
+        nextOffset = offset;
+        return;
+      }
+      if (pending || utterance) interruptForSpeech();
+      if (candidate !== [finalized, interim].filter(Boolean).join(" ") && !endOfSpeech) {
+        lastSpeechAt = performance.now();
+      }
+      finalized = text;
+      interim = hypothesis;
+      nextOffset = event.results.length;
+      updateDraft(endOfSpeech);
+      speechPreview.textContent = normalizeDictation([committed, text, hypothesis].filter(Boolean).join(" "));
+      clearTimeout(voiceDraftTimer);
+      if (!interim || endOfSpeech) sendVoiceDraftAfter(lastSpeechAt);
     } else {
-      speechPreview.textContent = normalizeDictation(interim.join(" ").trim());
+      speechPreview.textContent = normalizeDictation(partial.join(" ").trim());
       if (text) $("question").value = normalizeDictation(text).slice(0, 500);
     }
   };
@@ -876,8 +867,11 @@ function startListening(auto = false) {
     if (recognition !== active) return;
     recognition = undefined;
     audioActive = false;
+    if (auto && revision === voiceRevision) {
+      updateDraft(true);
+      sendVoiceDraftAfter(lastSpeechAt);
+    }
     speechPreview.textContent = auto ? normalizeDictation(voiceDraft) : "";
-    if (auto) sendVoiceDraftAfter();
     if (["listening", "micStarting"].includes(state)) status("ready");
     if (auto) scheduleListening(150);
   };
