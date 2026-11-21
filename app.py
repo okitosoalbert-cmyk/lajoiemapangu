@@ -29,6 +29,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
+BUILD = "2026.11.21-r2"
 PLACES = json.loads((ROOT / "static" / "campus-map.json").read_text(encoding="utf-8"))["places"]
 DIRECTIONS = {
     "fr": ("nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"),
@@ -349,7 +350,7 @@ def preferred(data):
 
 @app.after_request
 def no_cache(response):
-    if request.path.startswith(("/api/", "/reprise/")):
+    if request.path.startswith(("/api/", "/reprise/")) or request.path == "/version":
         response.headers["Cache-Control"] = "no-store"
         response.headers["Referrer-Policy"] = "no-referrer"
     return response
@@ -359,6 +360,11 @@ def no_cache(response):
 def home():
     return render_template("index.html", has_glb=(ROOT / "static" / "mascotte.glb").is_file())
 
+
+
+@app.get("/version")
+def version():
+    return f"INNOVA {BUILD}\n", 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 @app.post("/api/ask")
 def ask():
@@ -566,6 +572,8 @@ if __name__ == "__main__":
         print("Gemini repond correctement : douze fois huit = 96.", flush=True)
         sys.exit(0)
 
+    print(f"INNOVA {BUILD}", flush=True)
+    print(f"Dossier : {ROOT}", flush=True)
     print("Cle Gemini chargee. Connexion a verifier." if gemini_key() else "INNOVA local mode.", flush=True)
     host = os.getenv("INNOVA_HOST", "127.0.0.1")
     port = int(os.getenv("INNOVA_PORT", "5100"))
@@ -598,7 +606,7 @@ if __name__ == "__main__":
         browser_host = "127.0.0.1" if host == "0.0.0.0" else "[::1]" if host == "::" else host
         if ":" in browser_host and not browser_host.startswith("["):
             browser_host = f"[{browser_host}]"
-        address = f"http://{browser_host}:{server.server_port}/?borne"
+        address = f"http://{browser_host}:{server.server_port}/?borne&version={BUILD}"
         print(f"INNOVA est prete sur {address}", flush=True)
         chrome = next((
             Path(folder) / "Google" / "Chrome" / "Application" / "chrome.exe"
