@@ -414,7 +414,7 @@ def ask():
                                  if lang == "fr" else " Open directions for an estimate of the walking time.")
         return jsonify(lang=lang, **response)
     campus_inquiry = bool(selected or matches or re.search(
-        r"\b(uottawa|universite d ottawa|university of ottawa|campus|pavillon|library|bibliotheque|residence|uozone|releve de notes|transcripts?|t2202|droits universitaires|tuition)\b", text
+        r"\b(uottawa|universite d ottawa|university of ottawa|campus|pavillon|library|bibliotheque|residence|uozone|releve de notes|transcripts?|t2202|droits universitaires|tuition|preuve d etudes|academic documents|attestation d etudes|changement de nom legal|student records|calendrier universitaire|academic calendar)\b", text
     ))
     if campus_inquiry and re.search(r"\b(horaire[s]?|ouvert[es]*|ouvr[ei]\w*|hours|open|close[s]?|frais|prix|fee[s]?|deadline[s]?|ferme[es]?|holiday[s]?|date limite|aujourd hui|today|tomorrow|demain)\b", text):
         message = ("Cette information peut changer. Je ne peux pas la confirmer ici. Vérifiez la page officielle.",
@@ -487,11 +487,11 @@ def ask():
         elif selected in PLACES and not re.search(r"\b(adresse|address)\b", text):
             result["text"] = orientation(selected, lang, catalog[selected])
         return jsonify(lang=lang, **result, gemini_notice=gemini_notice(gemini_status, lang) if gemini_status else None)
+    if not campus_inquiry:
+        return jsonify(lang=lang, text=gemini_notice(gemini_status or "response", lang))
     official = lookup_uottawa(question, lang)
     if official:
         return jsonify(lang=lang, **official, gemini_notice=gemini_notice(gemini_status, lang) if gemini_status else None)
-    if not campus_inquiry:
-        return jsonify(lang=lang, text=gemini_notice(gemini_status or "response", lang))
     guide = ("Je ne trouve pas de réponse vérifiée pour cette question sur le campus. Essaie le répertoire officiel d’uOttawa."
              if lang == "fr" else "I can’t find a verified campus answer for this question. Try uOttawa’s official site.")
     return jsonify(lang=lang, text=guide, source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en",
