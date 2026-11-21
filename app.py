@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from functools import lru_cache
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
@@ -32,7 +33,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r15"
+BUILD = "2026.11.21-r16"
 SPEECH_MODEL = "gemini-3.8-flash-tts"
 LANGUAGES = {item["locale"]: item["name"] for item in json.loads((ROOT / "static" / "languages.json").read_text(encoding="utf-8"))}
 INSTANCE = secrets.token_hex(6)
@@ -43,7 +44,23 @@ DIRECTIONS = {
 }
 
 
+@lru_cache(maxsize=1)
+def kiosk_origin():
+    try:
+        value = (ROOT / "Emplacement-borne.txt").read_text(encoding="utf-8-sig").strip().casefold()
+    except (OSError, UnicodeError):
+        return ""
+    return next((key for key, place in PLACES.items()
+                 if value in {key, place["code"].casefold()}), "")
+
+
 def orientation(topic, lang, fact=None):
+    origin = kiosk_origin()
+    if origin:
+        if topic == origin:
+            return "Tu es déjà au pavillon de la borne." if lang == "fr" else "You’re already at the kiosk’s building."
+        return (f"Voici {PLACES[topic][lang]}. Ouvre Trajet pour voir le parcours depuis la borne."
+                if lang == "fr" else f"Here’s {PLACES[topic][lang]}. Open Route to see the walk from the kiosk.")
     if fact and fact.get("wayfinding", {}).get(lang):
         return fact["wayfinding"][lang]
     place = PLACES[topic]
@@ -407,7 +424,7 @@ def no_cache(response):
 
 @app.get("/")
 def home():
-    return render_template("index.html", has_glb=(ROOT / "static" / "mascotte.glb").is_file(), build=BUILD)
+    return render_template("index.html", has_glb=(ROOT / "static" / "mascotte.glb").is_file(), build=BUILD, kiosk_origin=kiosk_origin())
 
 
 
@@ -652,10 +669,13 @@ def answer_question(question, data, *, use_gemini=True):
         return jsonify(lang=lang, **dict(format_fact(catalog[entrance_target], lang), text=entrance))
     if selected in PLACES and re.search(r"\b(loin|distance|how far|combien de temps|how long)\b", text):
         x, y = PLACES[selected]["point"]
-        ox, oy = PLACES["crx"]["point"]
+        origin = kiosk_origin() or "crx"
+        ox, oy = PLACES[origin]["point"]
         metres = round(math.hypot(x - ox, y - oy) / 25) * 25
+        if origin != "crx" and selected != origin:
+            return jsonify(lang=lang, **describe_route(origin, selected, lang, catalog))
         response = format_fact(catalog[selected], lang)
-        if selected == "crx":
+        if selected == origin:
             response["text"] = orientation(selected, lang)
         else:
             response["text"] = (f"Depuis le CRX, compte environ {metres} mètres à vol d’oiseau. Regarde les deux repères sur la carte pour te situer."
@@ -747,6 +767,17 @@ def answer_question(question, data, *, use_gemini=True):
              if lang == "fr" else "I can’t find a verified campus answer for this question. Try uOttawa’s official site.")
     return jsonify(lang=lang, text=guide, source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en",
                    gemini_notice=gemini_notice(gemini_status, lang) if gemini_status else None)
+
+
+@app.get("/api/route-qr")
+def route_qr():
+    origin, destination = request.args.get("origin"), request.args.get("destination")
+    if origin not in PLACES or destination not in PLACES or origin == destination:
+        return jsonify(error="invalid_route"), 400
+    url = describe_route(origin, destination, "en", facts())["route"]
+    image = io.BytesIO()
+    qrcode.make(url).save(image, format="PNG")
+    return Response(image.getvalue(), mimetype="image/png")
 
 
 @app.post("/api/transfer")

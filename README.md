@@ -130,3 +130,9 @@ La date et l’heure sont calculées à chaque demande à partir de l’horloge 
 Pour reconnaître la destination, le bouton **Vue aérienne 3D** ouvre Google Earth et **Voir depuis la rue** ouvre Street View près du pavillon. Ces vues s’ouvrent dans un autre onglet et dépendent de la couverture des images de Google.
 
 La carte s’ouvre sur une maquette 3D rapprochée du pavillon. **Trajet** cadre l’itinéraire piéton, et **Pavillon** revient à la vue rapprochée. Les images photographiques restent accessibles avec Google Earth et Street View.
+
+### Borne tactile installée sur le campus
+
+Ouvre `Emplacement-borne.txt` avec le Bloc-notes, inscris le code du pavillon où la borne sera installée (par exemple `CRX`, `FTX` ou `SITE`), enregistre et relance INNOVA. Laisse le fichier vide tant que l’emplacement reste à confirmer. La borne prend ce pavillon comme point de départ et indique « Vous êtes ici » dans la vue du trajet. Le départ représente le pavillon, pas une porte précise.
+
+Le QR **Emporter le trajet sur mon téléphone** ouvre directement un itinéraire piéton dans Google Maps. Le téléphone peut être sur un autre réseau. Google Maps calcule son propre trajet et requiert Internet.

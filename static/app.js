@@ -4,7 +4,7 @@ const translations = {
   fr: {
     campus: "UNIVERSITÉ D’OTTAWA", finish: "Terminer", eyebrow: "GUIDE DU CAMPUS", heading: "Bonjour, je suis Innova.",
     description: "Un pavillon à trouver, un service à découvrir ? Posez-moi votre question sur le campus de l’Université d’Ottawa.",
-    suggest: "PAR OÙ COMMENCER ?", map: "Se repérer", mapNote: "Pavillons et carte", library: "Bibliothèque", libraryNote: "Trouver Morisset",
+    suggest: "PAR OÙ COMMENCER ?", map: "Trouver un pavillon", mapNote: "Pavillons et carte", library: "Bibliothèque", libraryNote: "Trouver Morisset",
     food: "Où manger", foodNote: "Cafés et restaurants", services: "Vie étudiante", servicesNote: "Services et activités",
     privacy: "Sur cette borne, votre conversation s’efface à la fin de la session.", prototype: "PROTOTYPE U-GUIDE", standby: "Mode borne",
     officialMap: "Carte officielle du campus", recap: "Récapitulatif", reset: "Nouvelle session", camera: "Activer la détection de présence",
@@ -14,12 +14,13 @@ const translations = {
     verified: "Vérifié le", source: "Source officielle", route: "Itinéraire", scan: "Scannez pour emporter vos réponses vérifiées. Lien utilisable une fois, pendant 15 minutes.",
     noQr: "Aucune réponse vérifiée à emporter.", qrWait: "Préparation du code QR…", qrFailure: "Le code QR est indisponible.",
     waiting: "Détection active. Placez-vous devant la borne.", cameraFailure: "La détection est indisponible. Touchez l’écran pour commencer.",
-    topics: {map: "Où se trouve le pavillon SITE ?", library: "Où se trouve la bibliothèque Morisset ?", food: "Où manger sur le campus ?", services: "Quels sont les services étudiants ?"},
+    studentCard: "Carte étudiante", studentCardNote: "Obtenir ou remplacer", timetable: "Horaires de cours", timetableNote: "Chercher par code de cours",
+    topics: {studentCard: "Comment obtenir ma carte étudiante ?", library: "Où se trouve la bibliothèque Morisset ?", food: "Où manger sur le campus ?", services: "Quels sont les services étudiants ?"},
   },
   en: {
     campus: "UNIVERSITY OF OTTAWA", finish: "End session", eyebrow: "CAMPUS GUIDE", heading: "Hi, I’m Innova.",
     description: "Looking for a building or a service? Ask me about the University of Ottawa campus.",
-    suggest: "WHERE TO START?", map: "Find your way", mapNote: "Buildings and maps", library: "Library", libraryNote: "Find Morisset",
+    suggest: "WHERE TO START?", map: "Find a building", mapNote: "Buildings and maps", library: "Library", libraryNote: "Find Morisset",
     food: "Where to eat", foodNote: "Cafés and restaurants", services: "Student life", servicesNote: "Services and activities",
     privacy: "Your conversation clears from this kiosk when the session ends.", prototype: "U-GUIDE PROTOTYPE", standby: "Kiosk mode",
     officialMap: "Official campus map", recap: "Your recap", reset: "New session", camera: "Enable presence detection",
@@ -29,7 +30,8 @@ const translations = {
     verified: "Verified on", source: "Official source", route: "Directions", scan: "Scan to take your verified answers with you. This link works once, within 15 minutes.",
     noQr: "There are no verified answers to take with you.", qrWait: "Preparing the QR code…", qrFailure: "The QR code is unavailable.",
     waiting: "Detection is active. Stand in front of the kiosk.", cameraFailure: "Presence detection is unavailable. Tap the screen to start.",
-    topics: {map: "Where is the SITE building?", library: "Where is Morisset Library?", food: "Where can I eat on campus?", services: "What student services are available?"},
+    studentCard: "Student card", studentCardNote: "Get or replace your card", timetable: "Course timetable", timetableNote: "Search using a course code",
+    topics: {studentCard: "How do I get my student card?", library: "Where is Morisset Library?", food: "Where can I eat on campus?", services: "What student services are available?"},
   },
 };
 const paths = {
@@ -542,7 +544,7 @@ async function ask(text, lastSpeechAt) {
     if (result.map) {
       link(links, result.map, words.officialMap);
       import("/static/campus-map.js")
-        .then(({showCampusMap}) => showCampusMap(article, result.map_destination || result.id, result.lang, result.origin))
+        .then(({showCampusMap}) => showCampusMap(article, result.map_destination || result.id, result.lang, result.origin, document.body.dataset.kioskOrigin))
         .then(scrollToReply)
         .catch(() => {});
     }
@@ -797,7 +799,23 @@ for (const id of ["fr", "en"]) $(id).onclick = () => {
   locale(id);
 };
 for (const node of document.querySelectorAll("[data-icon]")) node.innerHTML = svg(node.dataset.icon);
-for (const button of document.querySelectorAll("[data-topic]")) button.onclick = () => ask(copy().topics[button.dataset.topic]);
+for (const button of document.querySelectorAll("[data-topic]")) button.onclick = () => {
+  const topic = button.dataset.topic;
+  if (topic !== "map" && topic !== "timetable") {
+    ask(copy().topics[topic]);
+    return;
+  }
+  const field = $("question");
+  field.value = "";
+  field.placeholder = topic === "map" ? (lang === "fr" ? "Ex. Pavillon Fauteux" : "E.g. Fauteux Hall")
+    : (lang === "fr" ? "Ex. GNG1503" : "E.g. GNG1503");
+  if (!automatic) {
+    $("keyboard").hidden = false;
+    $("keys").setAttribute("aria-expanded", "true");
+  }
+  field.focus();
+
+};
 function setSound(value) {
   sound = value;
   if (!sound) {

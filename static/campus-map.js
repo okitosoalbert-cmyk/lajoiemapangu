@@ -59,7 +59,7 @@ function photoViews(destination, paths, fr) {
   return views;
 }
 
-export async function showCampusMap(container, destination, lang, originId) {
+export async function showCampusMap(container, destination, lang, originId, kioskId) {
   const labels = lang === "fr"
     ? {title:"Carte 3D du campus", plan:"Vue schématique · CRX comme point de repère", left:"Tourner à gauche", right:"Tourner à droite", closer:"Agrandir", farther:"Réduire", reset:"Vue du campus", fail:"Carte intégrée indisponible. Ouvre la carte officielle dans la réponse."}
     : {title:"3D campus map", plan:"Schematic view · CRX reference point", left:"Rotate left", right:"Rotate right", closer:"Zoom in", farther:"Zoom out", reset:"Campus view", fail:"The embedded map is unavailable. Open the official map in the answer."};
@@ -93,23 +93,38 @@ export async function showCampusMap(container, destination, lang, originId) {
     const fr = lang === "fr";
     const area = place => place.region === "north" ? "campus" : place.region || "campus";
     const places = Object.entries(data.places).filter(([, place]) => area(place) === area(target));
-    let originKey = places.some(([key]) => key === originId) ? originId
-      : area(target) === "campus" && destination !== "crx" ? "crx" : "";
+    const localOrigin = places.some(([key]) => key === kioskId) ? kioskId : "";
+    let originKey = places.some(([key]) => key === originId) ? originId : localOrigin;
+    const here = fr ? "Vous êtes ici" : "You are here";
+    const departureName = (key, place) => (key === localOrigin ? here + " · " : "") + place[lang];
     const departure = document.createElement("label");
     departure.className = "map-departure";
     departure.textContent = fr ? "Point de départ" : "Starting point";
     const select = document.createElement("select");
     select.add(new Option(fr ? "Choisir un repère" : "Choose a landmark", ""));
     for (const [key, place] of places.sort((a,b) => a[1][lang].localeCompare(b[1][lang], lang))) {
-      if (key !== destination) select.add(new Option(place[lang] + " (" + place.code + ")", key));
+      if (key !== destination || key === localOrigin) select.add(new Option(departureName(key, place) + " (" + place.code + ")", key));
     }
-    if (originKey === destination) originKey = "";
+
     select.value = originKey;
     departure.append(select);
     const guide = document.createElement("p");
     guide.className = "map-guide";
     guide.setAttribute("aria-live", "polite");
-    controls.after(departure, guide);
+    const share = document.createElement("details");
+    share.className = "map-qr";
+    const shareTitle = document.createElement("summary");
+    shareTitle.textContent = fr ? "Emporter le trajet sur mon téléphone" : "Take the route on my phone";
+    const qr = document.createElement("img");
+    qr.alt = fr ? "Code QR du trajet Google Maps" : "Google Maps walking route QR code";
+    qr.width = qr.height = 160;
+    share.append(shareTitle, qr);
+    share.addEventListener("toggle", () => {
+      if (share.open && originKey && originKey !== destination) {
+        qr.src = "/api/route-qr?" + new URLSearchParams({origin:originKey, destination});
+      } else qr.removeAttribute("src");
+    });
+    controls.after(departure, guide, share);
     caption.firstChild.textContent = (fr ? "Maquette du campus · " : "Campus model · ");
     const dialog = document.createElement("dialog");
     dialog.className = "campus-dialog";
@@ -153,12 +168,29 @@ export async function showCampusMap(container, destination, lang, originId) {
       originKey = select.value;
       route = graph && walkingRoute(graph, originKey, destination);
       const start = reference();
+      share.open = false;
+      share.hidden = !start || originKey === destination;
+      qr.removeAttribute("src");
       const length = route ? Math.max(10, Math.round(route.metres / 10) * 10) : 0;
       const minutes = Math.max(1, Math.round(length / 75));
       const arrival = (fr ? "Arrivée · " : "Destination · ") + target[lang];
-      guide.textContent = arrival + (route
+      const directions = fr ? ["nord","nord-est","est","sud-est","sud","sud-ouest","ouest","nord-ouest"]
+        : ["north","northeast","east","southeast","south","southwest","west","northwest"];
+      let firstStep = "";
+      if (route?.path.length > 1) {
+        const [x, y] = route.path[0];
+        const next = route.path.find(([a, b]) => Math.hypot(a - x, b - y) >= 18);
+        if (next) {
+          const sector = (Math.round(Math.atan2(next[0] - x, y - next[1]) / (Math.PI / 4)) + 8) % 8;
+          firstStep = fr ? " Commence sur le chemin en direction " + directions[sector] + "."
+            : " Start along the path heading " + directions[sector] + ".";
+        }
+      }
+      guide.textContent = originKey === destination
+        ? here + " · " + target[lang]
+        : arrival + (route
         ? (fr ? ` · Environ ${length} m à pied (${minutes} min). Le tracé rejoint les chemins cartographiés près des pavillons.`
-              : ` · About ${length} m on foot (${minutes} min). The route connects mapped paths near the buildings.`)
+              : ` · About ${length} m on foot (${minutes} min). The route connects mapped paths near the buildings.`) + firstStep
         : start ? (fr ? " · Aucun trajet piéton cartographié entre ces repères." : " · No mapped walking route between these landmarks.")
                 : (fr ? " · Choisis un point de départ pour voir le trajet." : " · Choose a starting point to see the route."));
       render();
@@ -266,8 +298,10 @@ export async function showCampusMap(container, destination, lang, originId) {
         ctx.fillText(title,x,y-9);
       }
       const key = reference();
-      if (key && map.dataset.view !== "building") marker(key.point, (fr ? "Départ · " : "Start · ") + key.code, "#245c5b");
-      marker(target.point, (fr ? "Arrivée · " : "Destination · ") + target.code, "#721538", peak + 8);
+      if (key && originKey !== destination && map.dataset.view !== "building") {
+        marker(key.point, (originKey === localOrigin ? here + " · " : fr ? "Départ · " : "Start · ") + key.code, "#245c5b");
+      }
+      marker(target.point, (localOrigin === destination ? here + " · " : fr ? "Arrivée · " : "Destination · ") + target.code, "#721538", peak + 8);
 
       const [nx, ny] = [width-24, 30];
       ctx.save();

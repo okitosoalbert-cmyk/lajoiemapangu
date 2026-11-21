@@ -72,3 +72,9 @@ dialog{border:1px solid var(--edge);border-radius:22px;color:var(--ink);padding:
 
 .campus-map[data-view="building"] canvas{height:clamp(250px,36vh,355px);border:1px solid #d8e0d6}
 .campus-dialog>.campus-map[data-view="building"] canvas{height:clamp(210px,60vh,680px)}
+
+.cards button{min-height:64px}
+.campus-controls button,.map-departure select{min-height:44px}
+.map-qr{margin-block:8px}
+.map-qr summary{padding:10px 0;cursor:pointer;font-weight:650}
+.map-qr img{display:block;width:160px;height:160px}
