@@ -37,6 +37,13 @@ def orientation(topic, lang):
     if topic == "crx":
         return ("Le Carrefour des apprentissages (CRX) est le point de repère sur la carte."
                 if lang == "fr" else "Learning Crossroads (CRX) is the reference point on the map.")
+    region = place.get("region", "campus")
+    if region not in ("campus", "north"):
+        labels = {"lees": ("au campus Lees", "at the Lees campus"),
+                  "health": ("au campus Alta Vista", "at the Alta Vista campus")}
+        label = labels[region][lang == "en"]
+        return (f"Tu trouveras {place[lang]} {label}. La carte affiche le secteur autour de ta destination."
+                if lang == "fr" else f"You’ll find {place[lang]} {label}. The map shows the area around your destination.")
     x, y = place["point"]
     ox, oy = PLACES["crx"]["point"]
     sector = round(math.atan2(x - ox, oy - y) / (math.pi / 4)) % 8
@@ -67,7 +74,7 @@ def normalize(text):
 def language(text, default):
     words = set(normalize(text).split())
     fr = words & set("ou trouve est je peux comment adresse chercher quels quelle les des une pour bonjour manger horaires bibliotheque merci loin".split())
-    en = words & set("where is what how i can the to find near hours library hello get food address are thanks thank far".split())
+    en = words & set("where is what how i can the to find near hours library hello get food address are thanks thank far list building buildings".split())
     return "fr" if len(fr) > len(en) else "en" if len(en) > len(fr) else default
 
 
@@ -78,8 +85,9 @@ def facts():
 
 def format_fact(fact, lang):
     result = {"id": fact["id"], "text": fact[lang], "source": fact.get("source_fr", fact["source"]) if lang == "fr" else fact["source"], "verified": VERIFIED}
-    if fact.get("address"):
+    if fact["id"] in PLACES:
         result["map"] = MAP[lang]
+    if fact.get("address"):
         result["route"] = "https://www.google.com/maps/dir/?api=1&destination=" + quote(fact["address"])
     return result
 
@@ -187,8 +195,15 @@ def ask():
     if re.fullmatch(r" (merci(?: beaucoup)?|thanks(?: a lot)?|thank you(?: very much)?) ", text):
         return jsonify(lang=lang, text="Avec plaisir ! Tu cherches un autre endroit ou un service ?" if lang == "fr"
                        else "You’re welcome! Are you looking for another place or service?")
-    matches = {key: [word for word in fact["aliases"] if f" {word} " in text] for key, fact in catalog.items()}
-    matches = {key: words for key, words in matches.items() if words}
+    mentions = []
+    for key, fact in catalog.items():
+        for alias in fact["aliases"]:
+            for match in re.finditer(r"(?<!\w)" + re.escape(alias) + r"(?!\w)", text):
+                mentions.append((match.start(), match.end(), key))
+    matches = dict.fromkeys(key for start, end, key in mentions if not any(
+        outer_start <= start and outer_end >= end and outer_end - outer_start > end - start
+        for outer_start, outer_end, _ in mentions
+    ))
     selected = next(iter(matches)) if len(matches) == 1 else None
     if not matches and previous and re.search(
         r"\b(c est loin|est ce loin|is it far|how far|combien de temps|how long(?: does it take)?|comment j y vais|comment y aller|how do i get there|where is it|c est ou|son adresse|what is its address|est ce ouvert|is it open)\b", text
@@ -222,6 +237,12 @@ def ask():
                    "I can’t confirm that detail. Check the official page.")
         source = format_fact(catalog[selected], lang)["source"] if selected else MAP[lang]
         return jsonify(lang=lang, text=message[lang == "en"], source=source)
+    if not matches and re.search(r"\b(liste des (?:pavillons|batiments)|repertoire des (?:batiments|pavillons)|building directory|list of buildings)\b", text):
+        directory = ("https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments"
+                     if lang == "fr" else MAP["en"] + "/building")
+        return jsonify(lang=lang, source=directory,
+                       text="Voici le répertoire officiel. Tu peux aussi me donner le nom ou le code du bâtiment que tu veux trouver."
+                       if lang == "fr" else "Here’s the official building directory. You can also give me a building name or code.")
     if len(matches) > 1:
         return jsonify(lang=lang, text="De quel lieu ou service voulez-vous parler ?" if lang == "fr" else "Which place or service do you mean?", options=list(matches),
                        option_labels={key: catalog[key]["aliases"][0] if key not in PLACES else PLACES[key]["code"] for key in matches})
