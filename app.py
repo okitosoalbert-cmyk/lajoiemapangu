@@ -29,7 +29,8 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r2"
+BUILD = "2026.11.21-r3"
+INSTANCE = secrets.token_hex(6)
 PLACES = json.loads((ROOT / "static" / "campus-map.json").read_text(encoding="utf-8"))["places"]
 DIRECTIONS = {
     "fr": ("nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"),
@@ -350,6 +351,7 @@ def preferred(data):
 
 @app.after_request
 def no_cache(response):
+    response.headers["X-INNOVA-Instance"] = INSTANCE
     if request.path.startswith(("/api/", "/reprise/")) or request.path == "/version":
         response.headers["Cache-Control"] = "no-store"
         response.headers["Referrer-Policy"] = "no-referrer"
@@ -358,7 +360,7 @@ def no_cache(response):
 
 @app.get("/")
 def home():
-    return render_template("index.html", has_glb=(ROOT / "static" / "mascotte.glb").is_file())
+    return render_template("index.html", has_glb=(ROOT / "static" / "mascotte.glb").is_file(), build=BUILD)
 
 
 
@@ -373,6 +375,21 @@ def ask():
     if not isinstance(question, str) or not question.strip() or len(question) > 500:
         return jsonify(error="invalid_question"), 400
     lang = language(question, preferred(data))
+    arithmetic = re.fullmatch(
+        r"\s*(?:(?:combien\s+(?:font|fait)|calcule|what\s+is|calculate)\s+)?"
+        r"([+-]?\d{1,9})\s*(×|x|\*|fois|times|\+|plus|−|-|moins|minus)\s*([+-]?\d{1,9})\s*[?=.!]?\s*",
+        question, re.I,
+    )
+    if arithmetic:
+        left, op, right = arithmetic.groups()
+        a, b = int(left), int(right)
+        if op.lower() in {"×", "x", "*", "fois", "times"}:
+            operator, total = "×", a * b
+        elif op.lower() in {"+", "plus"}:
+            operator, total = "+", a + b
+        else:
+            operator, total = "−", a - b
+        return jsonify(lang=lang, text=f"{a} {operator} {b} = {total}.", general=True)
     text = f" {normalize(question)} "
     catalog = facts()
     previous = data.get("previous")
@@ -543,11 +560,12 @@ initialize()
 
 if __name__ == "__main__":
     from contextlib import redirect_stderr
+    import socket
     from subprocess import Popen
     import sys
     import webbrowser
 
-    from werkzeug.serving import WSGIRequestHandler, make_server
+    from werkzeug.serving import ThreadedWSGIServer, WSGIRequestHandler, make_server
 
     class KioskRequestHandler(WSGIRequestHandler):
         def log_request(self, code="-", size="-"):
@@ -555,6 +573,19 @@ if __name__ == "__main__":
                 self.log("info", "%s /reprise/ [redacted] %s %s", self.command, code, size)
                 return
             super().log_request(code, size)
+
+    class ExclusiveKioskServer(ThreadedWSGIServer):
+        allow_reuse_address = False
+
+        def server_bind(self):
+            if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            super().server_bind()
+
+    def bind_kiosk(host, port):
+        if sys.platform == "win32":
+            return ExclusiveKioskServer(host, port, app, handler=KioskRequestHandler)
+        return make_server(host, port, app, threaded=True, request_handler=KioskRequestHandler)
 
     if "--check-gemini" in sys.argv:
         model = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
@@ -581,10 +612,9 @@ if __name__ == "__main__":
     if "--open-browser" not in sys.argv:
         app.run(host=host, port=port, request_handler=KioskRequestHandler)
     else:
-        options = {"threaded": True, "request_handler": KioskRequestHandler}
         try:
             with redirect_stderr(io.StringIO()) as setup_error:
-                server = make_server(host, port, app, **options)
+                server = bind_kiosk(host, port)
         except SystemExit:
             if os.getenv("INNOVA_PUBLIC_ORIGIN"):
                 print(setup_error.getvalue(), file=sys.stderr)
@@ -594,7 +624,7 @@ if __name__ == "__main__":
             for fallback in (port + 1 if port < 65535 else 0, 0):
                 try:
                     with redirect_stderr(io.StringIO()):
-                        server = make_server(host, fallback, app, **options)
+                        server = bind_kiosk(host, fallback)
                     break
                 except SystemExit:
                     continue
@@ -606,7 +636,7 @@ if __name__ == "__main__":
         browser_host = "127.0.0.1" if host == "0.0.0.0" else "[::1]" if host == "::" else host
         if ":" in browser_host and not browser_host.startswith("["):
             browser_host = f"[{browser_host}]"
-        address = f"http://{browser_host}:{server.server_port}/?borne&version={BUILD}"
+        address = f"http://{browser_host}:{server.server_port}/?borne&version={BUILD}&instance={INSTANCE}"
         print(f"INNOVA est prete sur {address}", flush=True)
         chrome = next((
             Path(folder) / "Google" / "Chrome" / "Application" / "chrome.exe"
