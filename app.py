@@ -33,7 +33,9 @@ DIRECTIONS = {
 }
 
 
-def orientation(topic, lang):
+def orientation(topic, lang, fact=None):
+    if fact and fact.get("wayfinding", {}).get(lang):
+        return fact["wayfinding"][lang]
     place = PLACES[topic]
     if topic == "crx":
         return ("Le Carrefour des apprentissages (CRX) est le point de repère sur la carte."
@@ -182,7 +184,7 @@ def answer_with_gemini(question, catalog, lang, topic, previous):
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     glossary = {}
     for code, fact in catalog.items():
-        guidance = orientation(code, lang) if code in PLACES else fact[lang]
+        guidance = orientation(code, lang, fact) if code in PLACES else fact[lang]
         glossary[code] = {"aliases": fact["aliases"], "verified_guidance": guidance}
     payload = {
         "systemInstruction": {"parts": [{"text": (
@@ -270,11 +272,20 @@ def ask():
     if not matches and isinstance(confirmation, str) and confirmation in PLACES and re.fullmatch(
         r" (oui|oui c est ca|c est ca|exactement|yes|yes please|that s right|exactly) ", text
     ):
-        return jsonify(lang=lang, **dict(format_fact(catalog[confirmation], lang), text=orientation(confirmation, lang)))
+        return jsonify(lang=lang, **dict(format_fact(catalog[confirmation], lang), text=orientation(confirmation, lang, catalog[confirmation])))
     if not matches and previous and re.search(
         r"\b(c est loin|est ce loin|is it far|how far|combien de temps|how long(?: does it take)?|comment j y vais|comment y aller|how do i get there|where is it|c est ou|son adresse|what is its address|est ce ouvert|is it open)\b", text
     ):
         selected = previous
+    entrance_terms = re.search(
+        r"\b(entree[s]?|entrer|rampe|accessible|accessibilite|fauteuil roulant|entrance[s]?|enter|wheelchair|ramp|accessibility)\b", text
+    )
+    entrance_target = next((key for key in matches if key in PLACES), None)
+    if entrance_target is None and not any(key in PLACES for key in matches):
+        entrance_target = previous
+    entrance = catalog.get(entrance_target, {}).get("entrance", {}).get(lang)
+    if entrance_terms and entrance and sum(key in PLACES for key in matches) <= 1:
+        return jsonify(lang=lang, **dict(format_fact(catalog[entrance_target], lang), text=entrance))
     if selected in PLACES and re.search(r"\b(loin|distance|how far|combien de temps|how long)\b", text):
         x, y = PLACES[selected]["point"]
         ox, oy = PLACES["crx"]["point"]
@@ -327,6 +338,8 @@ def ask():
     natural = answer_with_gemini(question, catalog, lang, selected, previous)
     if natural:
         selected, answer = natural
+        if catalog[selected].get("wayfinding") and not re.search(r"\bcopernicus\b", answer, re.I):
+            natural = None
     if not selected and (
         re.search(r"\b(ou|where|pavillon|building|residence|localiser|trouver|bibliotheque|library)\b", text)
         or len(text.split()) <= 3
@@ -344,7 +357,7 @@ def ask():
         if natural:
             result["text"] = answer
         elif selected in PLACES and not re.search(r"\b(adresse|address)\b", text):
-            result["text"] = orientation(selected, lang)
+            result["text"] = orientation(selected, lang, catalog[selected])
         return jsonify(lang=lang, **result)
     return jsonify(lang=lang, text="Je n’ai pas trouvé ce que tu cherches. Donne-moi le nom du pavillon ou dis-moi si tu cherches un service, un logement ou de l’aide pour tes cours." if lang == "fr" else "I couldn’t find what you’re looking for. Tell me the building name, or whether you need a student service, housing or help with classes.", source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en")
 
@@ -378,7 +391,7 @@ def recap(token):
         return render_template("recap.html", lang="fr", items=[]), 410
     catalog = facts()
     return render_template("recap.html", lang=row[2], items=[
-        dict(format_fact(catalog[key], row[2]), text=orientation(key, row[2]) if key in PLACES else catalog[key][row[2]])
+        dict(format_fact(catalog[key], row[2]), text=orientation(key, row[2], catalog[key]) if key in PLACES else catalog[key][row[2]])
         for key in json.loads(row[0]) if key in catalog
     ])
 
