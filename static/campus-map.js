@@ -5,8 +5,8 @@ const campus = fetch("/static/campus-map.json").then(response => {
 
 export async function showCampusMap(container, destination, lang) {
   const labels = lang === "fr"
-    ? {title:"Carte 3D du campus", plan:"Vue schématique · bâtiments en relief", left:"Tourner à gauche", right:"Tourner à droite", closer:"Agrandir", farther:"Réduire", reset:"Vue du campus", focus:"Recentrer", fail:"Carte intégrée indisponible. Ouvre la carte officielle dans la réponse."}
-    : {title:"3D campus map", plan:"Schematic view · raised building footprints", left:"Rotate left", right:"Rotate right", closer:"Zoom in", farther:"Zoom out", reset:"Campus view", focus:"Recenter", fail:"The embedded map is unavailable. Open the official map in the answer."};
+    ? {title:"Carte 3D du campus", plan:"Vue schématique · CRX comme point de repère", left:"Tourner à gauche", right:"Tourner à droite", closer:"Agrandir", farther:"Réduire", reset:"Vue du campus", focus:"Recentrer", fail:"Carte intégrée indisponible. Ouvre la carte officielle dans la réponse."}
+    : {title:"3D campus map", plan:"Schematic view · CRX reference point", left:"Rotate left", right:"Rotate right", closer:"Zoom in", farther:"Zoom out", reset:"Campus view", focus:"Recenter", fail:"The embedded map is unavailable. Open the official map in the answer."};
   try {
     const data = await campus;
     const target = data.places[destination];
@@ -33,7 +33,11 @@ export async function showCampusMap(container, destination, lang) {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw Error("Canvas unavailable");
-    let angle = -.35, zoom = 1, center = target.point;
+    const origin = data.places.crx.point;
+    const routeCenter = origin.map((value, i) => (value + target.point[i]) / 2);
+    const separation = Math.hypot(target.point[0] - origin[0], target.point[1] - origin[1]);
+    const focusZoom = Math.min(1, 240 / Math.max(1, separation));
+    let angle = -.35, zoom = focusZoom, center = routeCenter;
     function render() {
       const width = canvas.clientWidth, height = canvas.clientHeight;
       if (!width || !height) return;
@@ -82,18 +86,31 @@ export async function showCampusMap(container, destination, lang) {
         }
         polygon(upper, active ? "#ae315b" : id ? "#d8c3ce" : "#cdd2d0", active ? "#77163a" : "#a6afaa");
       }
-      const [x,y] = project(target.point, 34);
-      ctx.font = "bold 12px system-ui";
-      const title = target.code;
-      const labelWidth = ctx.measureText(title).width + 22;
-      if (x > -10 && x < width + 10 && y > 10 && y < height) {
-        ctx.fillStyle = "#721538";
+      function marker(point, title, color) {
+        const [x,y] = project(point, 34);
+        ctx.font = "bold 12px system-ui";
+        const labelWidth = ctx.measureText(title).width + 20;
+        if (x < 0 || x > width || y < 8 || y > height) return;
+        ctx.fillStyle = color;
         ctx.fillRect(x - labelWidth / 2, y - 24, labelWidth, 21);
-        polygon([[x-4,y-3],[x+4,y-3],[x,y+4]], "#721538");
+        polygon([[x-4,y-3],[x+4,y-3],[x,y+4]], color);
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
         ctx.fillText(title,x,y-9);
       }
+      if (destination !== "crx") marker(origin, "CRX", "#245c5b");
+      marker(target.point, target.code, "#721538");
+
+      const [nx, ny] = [width-24, 30];
+      ctx.save();
+      ctx.translate(nx, ny);
+      ctx.rotate(Math.atan2(sin, .57 * cos));
+      polygon([[0,-12],[-4,2],[0,0],[4,2]], "#334754");
+      ctx.restore();
+      ctx.fillStyle = "#334754";
+      ctx.textAlign = "center";
+      ctx.font = "bold 10px system-ui";
+      ctx.fillText("N", nx, ny + 15);
     }
     function addButton(text, label, handler) {
       const button = document.createElement("button");
@@ -109,7 +126,7 @@ export async function showCampusMap(container, destination, lang) {
     addButton("+", labels.closer, () => { zoom = Math.min(zoom * 1.3, 2.5); });
     addButton("−", labels.farther, () => { zoom = Math.max(zoom / 1.3, .35); });
     addButton(labels.reset, labels.reset, () => { center = data.center; zoom = .38; });
-    addButton(labels.focus, labels.focus, () => { center = target.point; zoom = 1; });
+    addButton(labels.focus, labels.focus, () => { center = routeCenter; zoom = focusZoom; });
     render();
     const observer = new ResizeObserver(() => {
       if (canvas.isConnected) render();
