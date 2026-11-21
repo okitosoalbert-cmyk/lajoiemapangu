@@ -245,7 +245,7 @@ async function ask(text) {
   pending = controller;
   $("send").disabled = true;
   status("working");
-  const timeout = setTimeout(() => controller.abort(), 3900);
+  const timeout = setTimeout(() => controller.abort(), 7500);
   try {
     const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang}), signal: controller.signal});
     if (!response.ok) throw Error("Request failed");
