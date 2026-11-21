@@ -1,0 +1,122 @@
+[
+  {
+    "id": "site",
+    "aliases": [
+      "site",
+      "ste",
+      "pavillon site",
+      "site building",
+      "king edward"
+    ],
+    "fr": "Le pavillon SITE (STE) se trouve au 800, avenue King Edward, à Ottawa.",
+    "en": "The SITE building (STE) is at 800 King Edward Avenue, Ottawa.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/site",
+    "address": "800 King Edward Avenue, Ottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/eiti"
+  },
+  {
+    "id": "stem",
+    "aliases": [
+      "stem",
+      "stm",
+      "complexe stem",
+      "stem complex"
+    ],
+    "fr": "Le complexe STEM (STM) se trouve au 150, privé Louis-Pasteur, à Ottawa.",
+    "en": "The STEM Complex (STM) is at 150 Louis-Pasteur Private, Ottawa.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/stem-complex",
+    "address": "150 Louis-Pasteur Private, Ottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/complexe-stem"
+  },
+  {
+    "id": "mrt",
+    "aliases": [
+      "mrt",
+      "morisset",
+      "bibliotheque morisset",
+      "morisset library"
+    ],
+    "fr": "La bibliothèque Morisset est dans le pavillon Morisset (MRT), au 65, privé Université, à Ottawa.",
+    "en": "Morisset Library is in Morisset Hall (MRT), at 65 University Private, Ottawa.",
+    "source_fr": "https://www.uottawa.ca/bibliotheque/bibliotheque-morisset",
+    "source": "https://www.uottawa.ca/library/morisset-library",
+    "address": "65 University Private, Ottawa"
+  },
+  {
+    "id": "food",
+    "aliases": [
+      "manger",
+      "restauration",
+      "restaurant",
+      "restaurants",
+      "cafes",
+      "food",
+      "dining",
+      "eat",
+      "coffee"
+    ],
+    "fr": "Consultez le répertoire Manger sur le campus pour trouver la salle à manger, les restaurants et les cafés de l’Université d’Ottawa.",
+    "en": "Use Eat on Campus to find the University of Ottawa’s Dining Hall, restaurants and coffee shops.",
+    "source_fr": "https://www.uottawa.ca/vie-campus/manger-campus",
+    "source": "https://www.uottawa.ca/campus-life/eat-campus"
+  },
+  {
+    "id": "admission",
+    "aliases": [
+      "admission",
+      "admissions",
+      "admissibilite",
+      "apply",
+      "application",
+      "programmes",
+      "programs",
+      "undergraduate",
+      "premier cycle"
+    ],
+    "fr": "Pour une admission au premier cycle, choisissez votre programme et consultez les exigences qui correspondent à votre profil. Les liens vers les programmes et l’information d’admission figurent sur la page officielle.",
+    "en": "For undergraduate admission, choose a program and check the requirements for your applicant profile. The official page links to programs and admission information.",
+    "source": "https://www.uottawa.ca/study/undergraduate-studies"
+  },
+  {
+    "id": "campus",
+    "aliases": [
+      "services etudiants",
+      "student services",
+      "vie etudiante",
+      "student life",
+      "clubs",
+      "sports"
+    ],
+    "fr": "La page Vie sur le campus regroupe les liens vers les activités, les installations et les ressources de la vie étudiante.",
+    "en": "Campus Life links to student activities, facilities and resources.",
+    "source": "https://www.uottawa.ca/campus-life/"
+  },
+  {
+    "id": "crx",
+    "aliases": [
+      "crx",
+      "carrefour des apprentissages",
+      "learning crossroads"
+    ],
+    "fr": "Le Carrefour des apprentissages (CRX) se trouve au 100, privé Louis-Pasteur, à Ottawa.",
+    "en": "Learning Crossroads (CRX) is at 100 Louis-Pasteur Private, Ottawa.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/learning-crossroads-crx",
+    "address": "100 Louis-Pasteur Private, Ottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/carrefour-des-apprentissages"
+  },
+  {
+    "id": "ucu",
+    "aliases": [
+      "ucu",
+      "centre universitaire",
+      "centre universitaire jock turcot",
+      "university centre",
+      "university center"
+    ],
+    "fr": "Le Centre universitaire Jock-Turcot (UCU) se trouve au 85, privé Université, à Ottawa.",
+    "en": "University Centre (UCU) is at 85 University Private, Ottawa.",
+    "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/university-centre-ucu",
+    "address": "85 University Private, Ottawa",
+    "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/centre-universitaire-ucu"
+  }
+]
