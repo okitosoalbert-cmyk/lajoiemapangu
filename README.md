@@ -104,3 +104,5 @@ Les questions générales sont envoyées directement à Gemini. Si ce service é
 Pour confirmer la version qui répond sur Windows, regarde le numéro et le dossier dans la fenêtre de `Lancer-INNOVA.bat`. L’onglet ouvert par le lanceur contient le même numéro dans son adresse. L’URL `/version` sur ce même port indique le numéro du serveur qui répond.
 
 Les calculs courts écrits avec des chiffres et des signes simples, comme « Combien font 12 x 8 ? », sont calculés localement. Les autres questions générales, y compris le test de connexion dans `Tester-Gemini.bat`, continuent de passer par Gemini. Sur Windows, le lanceur réserve son port en mode exclusif et l’onglet vérifie qu’il obtient les réponses du serveur qui l’a ouvert.
+
+La dictée automatique regroupe les fragments après environ 1,7 seconde de silence et attend davantage si Chrome transcrit encore une phrase. La synthèse vocale privilégie une voix locale, règle le volume initial à 65 % et lit les réponses longues en segments.
