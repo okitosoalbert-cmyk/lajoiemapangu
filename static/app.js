@@ -61,7 +61,7 @@ const microphone = {
 const campusPhrases = [
   "Université d’Ottawa", "University of Ottawa", "bibliothèque Morisset", "Morisset Library",
   "pavillon SITE", "SITE building", "complexe STEM", "Carrefour des apprentissages",
-  "Learning Crossroads", "centre universitaire Jock-Turcot", "CRX", "UCU", "MRT",
+  "Learning Crossroads", "centre universitaire Jock-Turcot", "pavillon Fauteux", "Fauteux Hall", "FTX", "CRX", "UCU", "MRT",
 ];
 try { automatic = localStorage.getItem("innova-auto-v2") === "true"; } catch {}
 if (automatic) sound = true;
