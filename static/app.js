@@ -8,7 +8,7 @@ const translations = {
     privacy: "Sur cette borne, votre conversation s’efface à la fin de la session.", prototype: "PROTOTYPE U-GUIDE", standby: "Mode borne",
     officialMap: "Carte officielle du campus", recap: "Récapitulatif", reset: "Nouvelle session", camera: "Activer la détection de présence",
     placeholder: "Écrivez votre question…", send: "Envoyer", mic: "Dicter la question", keyboard: "Clavier tactile", sound: "Activer la voix",
-    mute: "Couper la voix", ready: "Prêt à vous aider", working: "Recherche en cours…", listening: "Je vous écoute…", speaking: "Gee-Gee parle…",
+    mute: "Couper la voix", ready: "Prêt à vous aider", working: "Recherche en cours…", micStarting: "Micro en préparation…", listening: "Je vous écoute…", speaking: "Gee-Gee parle…",
     failure: "La réponse est indisponible. Réessayez dans un instant.", micFailure: "La dictée est indisponible. Vous pouvez écrire la question.",
     verified: "Vérifié le", source: "Source officielle", route: "Itinéraire", scan: "Scannez pour emporter vos réponses vérifiées. Lien utilisable une fois, pendant 15 minutes.",
     noQr: "Aucune réponse vérifiée à emporter.", qrWait: "Préparation du code QR…", qrFailure: "Le code QR est indisponible.",
@@ -23,7 +23,7 @@ const translations = {
     privacy: "Your conversation clears from this kiosk when the session ends.", prototype: "U-GUIDE PROTOTYPE", standby: "Kiosk mode",
     officialMap: "Official campus map", recap: "Your recap", reset: "New session", camera: "Enable presence detection",
     placeholder: "Type your question…", send: "Send", mic: "Dictate question", keyboard: "Touch keyboard", sound: "Enable speech",
-    mute: "Mute speech", ready: "Ready to help", working: "Looking that up…", listening: "Listening…", speaking: "Gee-Gee is speaking…",
+    mute: "Mute speech", ready: "Ready to help", working: "Looking that up…", micStarting: "Preparing microphone…", listening: "Listening…", speaking: "Gee-Gee is speaking…",
     failure: "The answer is unavailable. Please try again shortly.", micFailure: "Dictation is unavailable. You can type your question.",
     verified: "Verified on", source: "Official source", route: "Directions", scan: "Scan to take your verified answers with you. This link works once, within 15 minutes.",
     noQr: "There are no verified answers to take with you.", qrWait: "Preparing the QR code…", qrFailure: "The QR code is unavailable.",
@@ -52,7 +52,7 @@ const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisse
 let lang = "fr", sound = false, state = "ready", items = [], lastTopic, confirmation, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
-let cameraBackground, microphoneSetup = 0;
+let cameraBackground, warmMicrophone, microphoneSetup = 0;
 let audioInput, contextualHints = true;
 const microphone = {
   audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true},
@@ -350,7 +350,29 @@ async function finish() {
   }
 }
 
+function prepareApproachAudio() {
+  if (warmMicrophone || !(window.SpeechRecognition || window.webkitSpeechRecognition)) return;
+  let input, cancelled = false;
+  warmMicrophone = {
+    result: navigator.mediaDevices.getUserMedia(microphone).then(stream => {
+      input = stream;
+      if (cancelled) stream.getTracks().forEach(track => track.stop());
+      return {input: stream};
+    }, error => ({error})),
+    cancel() {
+      cancelled = true;
+      input?.getTracks().forEach(track => track.stop());
+    },
+  };
+}
+
+function cancelApproachAudio() {
+  warmMicrophone?.cancel();
+  warmMicrophone = undefined;
+}
+
 function stopCamera() {
+  cancelApproachAudio();
   cameraCycle++;
   stream?.getTracks().forEach((track) => track.stop());
   stream = undefined;
@@ -359,7 +381,9 @@ function stopCamera() {
 }
 
 function wake() {
-  if ($("start").disabled) return;
+  if ($("start").disabled || !$("idle").open) return;
+  const prepared = automatic ? warmMicrophone : undefined;
+  if (prepared) warmMicrophone = undefined;
   stopCamera();
   $("idle").close();
   if (automatic) {
@@ -371,7 +395,7 @@ function wake() {
   touch();
   $("question").focus();
   animate(/wave|greet|salut/i);
-  if (automatic) startListening(true);
+  if (automatic) startListening(true, prepared);
   else say(copy().heading, lang);
 }
 
@@ -408,37 +432,69 @@ async function camera() {
     $("cameraStatus").textContent = lang === "fr"
       ? "Caméra active. Avancez vers le centre du cadre."
       : "Camera active. Step into the center of the frame.";
-    let consecutive = 0, clear = 0;
+    let consecutive = 0, clear = 0, videoTime = -1, quietFrames = 0;
     const check = () => {
       if (cycle !== cameraCycle) return;
       try {
-        if (video.readyState >= 2) {
+        if (video.readyState >= 2 && video.currentTime !== videoTime) {
+          videoTime = video.currentTime;
           pixels.drawImage(video, 0, 0, sample.width, sample.height);
           const data = pixels.getImageData(0, 0, sample.width, sample.height).data;
-          const frame = [];
-          // Read the central zone and compensate for uniform changes in exposure.
-          for (let y = 5; y < 33; y++) {
-            for (let x = 8; x < 40; x++) {
-              const i = (y * sample.width + x) * 4;
-              frame.push((data[i] + 2 * data[i + 1] + data[i + 2]) / 4);
+          const frame = new Float32Array(32 * 28);
+          for (let y = 0; y < 28; y++) {
+            for (let x = 0; x < 32; x++) {
+              const i = ((y + 5) * sample.width + x + 8) * 4;
+              frame[y * 32 + x] = (data[i] + 2 * data[i + 1] + data[i + 2]) / 4;
             }
           }
           if (!cameraBackground) cameraBackground = frame;
+          const histogram = new Uint16Array(511);
           const offsets = frame.map((value, i) => value - cameraBackground[i]);
-          const exposure = offsets.reduce((sum, value) => sum + value, 0) / offsets.length;
-          const changed = offsets.filter(value => Math.abs(value - exposure) > 20).length / offsets.length;
+          let borderSamples = 0;
+          for (let y = 0; y < 28; y++) {
+            for (let x = 0; x < 32; x++) {
+              if (x >= 4 && x < 28 && y >= 3) continue;
+              histogram[Math.round(offsets[y * 32 + x]) + 255]++;
+              borderSamples++;
+            }
+          }
+          // Estimate exposure from the edges, where an approaching visitor is less likely to fill the frame.
+          let pivot = 0, seen = 0;
+          for (; pivot < histogram.length; pivot++) {
+            seen += histogram[pivot];
+            if (seen >= borderSamples / 2) break;
+          }
+          const exposure = pivot - 255;
+          const tiles = new Uint8Array(16);
+          let changed = 0, centerChanged = 0;
+          for (let y = 0; y < 28; y++) {
+            for (let x = 0; x < 32; x++) {
+              if (Math.abs(offsets[y * 32 + x] - exposure) <= 17) continue;
+              changed++;
+              tiles[Math.floor(y / 7) * 4 + Math.floor(x / 8)]++;
+              if (x >= 8 && x < 24) centerChanged++;
+            }
+          }
+          const spread = tiles.filter(count => count >= 8).length;
+          const footprint = changed / frame.length;
+          const approach = footprint >= .075 && centerChanged >= 22 && spread >= 3;
           if (waitForDeparture) {
-            clear = changed < .07 ? clear + 1 : 0;
-            if (clear >= 5) waitForDeparture = false;
-          } else {
-            consecutive = changed > .14 ? consecutive + 1 : 0;
+            clear = footprint < .065 ? clear + 1 : 0;
+            if (clear >= 9) waitForDeparture = false;
+          } else if (approach) {
+            quietFrames = 0;
+            if (!consecutive) prepareApproachAudio();
+            consecutive++;
             if (consecutive >= 3) { wake(); return; }
-            if (changed < .07) {
-              cameraBackground = cameraBackground.map((value, i) => .94 * value + .06 * frame[i]);
+          } else {
+            consecutive = 0;
+            if (++quietFrames >= 2) cancelApproachAudio();
+            if (footprint < .065) {
+              cameraBackground = cameraBackground.map((value, i) => .95 * value + .05 * frame[i]);
             }
           }
         }
-        setTimeout(check, 140);
+        setTimeout(check, 65);
       } catch {
         cameraFailed();
       }
@@ -460,7 +516,7 @@ $("ask").onsubmit = (event) => { event.preventDefault(); ask($("question").value
 for (const id of ["fr", "en"]) $(id).onclick = () => {
   if (lang === id) return;
   stopListening();
-  if (state === "listening") status("ready");
+  if (["listening", "micStarting"].includes(state)) status("ready");
   voiceBlocked = false;
   locale(id);
   scheduleListening();
@@ -536,16 +592,20 @@ function normalizeDictation(text) {
     .replace(/\b(?:Maurisset|Mauricet|Moricet|Maurice est)\b/gi, "Morisset");
 }
 
-async function startListening(auto = false) {
+async function startListening(auto = false, prepared) {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const fail = (reason) => {
     if (auto) voiceBlocked = true;
     showMicrophoneError(reason);
   };
-  if (!Recognition) { fail(); return; }
-  if (recognition || utterance || pending) return;
+  if (!Recognition || recognition || utterance || pending) {
+    prepared?.cancel();
+    if (!Recognition) fail();
+    return;
+  }
   const active = new Recognition();
   recognition = active;
+  status("micStarting");
   active.lang = lang === "fr" ? "fr-CA" : "en-CA";
   active.interimResults = true;
   if (contextualHints && "phrases" in active && window.SpeechRecognitionPhrase) {
@@ -603,12 +663,19 @@ async function startListening(auto = false) {
     recognition = undefined;
     releaseAudio();
     speechPreview.textContent = "";
-    if (state === "listening") status("ready");
+    if (["listening", "micStarting"].includes(state)) status("ready");
     if (retryWithoutHints) startListening(auto);
     else if (auto) scheduleListening(900);
   };
   try {
-    const input = await navigator.mediaDevices.getUserMedia(microphone);
+    let input;
+    if (prepared) {
+      const result = await prepared.result;
+      if (result.error) throw result.error;
+      input = result.input;
+    } else {
+      input = await navigator.mediaDevices.getUserMedia(microphone);
+    }
     if (recognition !== active) {
       input.getTracks().forEach(track => track.stop());
       return;
@@ -628,6 +695,7 @@ async function startListening(auto = false) {
     if (recognition !== active) return;
     recognition = undefined;
     releaseAudio();
+    status("ready");
     fail(error.name);
   }
 }
@@ -636,7 +704,7 @@ $("mic").onclick = () => {
   voiceBlocked = false;
   if (recognition) {
     stopListening();
-    if (state === "listening") status("ready");
+    if (["listening", "micStarting"].includes(state)) status("ready");
   } else {
     startListening(automatic);
   }
@@ -644,7 +712,7 @@ $("mic").onclick = () => {
 $("question").addEventListener("input", () => {
   if (!automatic) return;
   stopListening();
-  if (state === "listening") status("ready");
+  if (["listening", "micStarting"].includes(state)) status("ready");
   if (!$("question").value.trim()) scheduleListening();
 });
 $("finish").onclick = finish;
@@ -674,7 +742,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     stopCamera();
     stopListening();
-    if (state === "listening") status("ready");
+    if (["listening", "micStarting"].includes(state)) status("ready");
   } else if (automatic && $("idle").open) {
     camera();
   } else {
