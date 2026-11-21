@@ -178,7 +178,7 @@ def gemini_key():
     return None
 
 
-def answer_with_gemini(question, catalog, lang, topic, previous):
+def answer_with_gemini(question, catalog, lang, topic, previous, *, allow_general=False, exchange=None):
     key = gemini_key()
     if not key:
         return None
@@ -188,6 +188,20 @@ def answer_with_gemini(question, catalog, lang, topic, previous):
     for code, fact in catalog.items():
         guidance = orientation(code, lang, fact) if code in PLACES else fact[lang]
         glossary[code] = {"aliases": fact["aliases"], "verified_guidance": guidance}
+    choices = [*catalog, "NONE"]
+    contents = []
+    if allow_general:
+        choices.append("GENERAL")
+        if isinstance(exchange, dict):
+            question_before, answer_before = exchange.get("question"), exchange.get("answer")
+            if all(isinstance(value, str) and 0 < len(value) <= limit
+                   for value, limit in ((question_before, 500), (answer_before, 640))):
+                contents.extend([
+                    {"role": "user", "parts": [{"text": question_before}]},
+                    {"role": "model", "parts": [{"text": json.dumps(
+                        {"topic": "GENERAL", "answer": answer_before}, ensure_ascii=False)}]},
+                ])
+    contents.append({"role": "user", "parts": [{"text": question}]})
     payload = {
         "systemInstruction": {"parts": [{"text": (
             "You are Gee-Gee, a friendly guide at the University of Ottawa. Speak to one student. "
@@ -196,20 +210,24 @@ def answer_with_gemini(question, catalog, lang, topic, previous):
             "Keep navigation relative to CRX when the given guidance does so. A map will appear automatically. "
             "Use only the verified guidance for the selected topic. Never invent a turn, route, distance, "
             "entrance, address, schedule, price, contact or URL. Do not repeat personal details. "
-            "If no topic fits, use topic NONE and give a friendly campus-related clarification without claiming any facts. "
+            "For specific uOttawa information, use one verified topic or NONE. Never use GENERAL for uOttawa-specific facts. "
+            "If GENERAL is available, use it to answer ordinary questions, give study tips, explain a concept, or continue casual conversation. "
+            "Answer naturally and directly, with a brief example when useful. Numbers are fine for GENERAL. "
+            "Avoid guessing live facts, like the weather or current opening hours. Do not claim to have searched the web. "
+            "Use NONE if you cannot answer reliably. "
             + (f"The server already verified the topic; use {topic}. " if topic else "")
             + (f"The previous topic was {previous}. Use it only if this question clearly follows up. " if previous else "")
             + json.dumps(glossary, ensure_ascii=False)
         )}]},
-        "contents": [{"parts": [{"text": question}]}],
+        "contents": contents,
         "generationConfig": {
-            "maxOutputTokens": 220,
+            "maxOutputTokens": 320,
             "thinkingConfig": {"thinkingBudget": 0},
             "responseMimeType": "application/json",
             "responseSchema": {
                 "type": "OBJECT",
                 "properties": {
-                    "topic": {"type": "STRING", "enum": [*catalog, "NONE"]},
+                    "topic": {"type": "STRING", "enum": choices},
                     "answer": {"type": "STRING"},
                 },
                 "required": ["topic", "answer"],
@@ -223,6 +241,8 @@ def answer_with_gemini(question, catalog, lang, topic, previous):
             result = json.load(response)
         draft = json.loads(result["candidates"][0]["content"]["parts"][0]["text"])
         picked, answer = draft["topic"], draft["answer"].strip()
+        if picked == "GENERAL" and allow_general and topic is None and 0 < len(answer) <= 640 and not re.search(r"https?://", answer):
+            return picked, answer
         known_topic = picked in catalog and (topic is None or picked == topic)
         if known_topic and 0 < len(answer) <= 400 and not re.search(r"https?://|\d", answer):
             return picked, answer
@@ -334,7 +354,10 @@ def ask():
             response["text"] += (" Je ne peux pas confirmer le temps de marche. Ouvre l’itinéraire pour l’estimer."
                                  if lang == "fr" else " Open directions for an estimate of the walking time.")
         return jsonify(lang=lang, **response)
-    if re.search(r"\b(horaire[s]?|ouvert[es]*|ouvr[ei]\w*|hours|open|close[s]?|frais|prix|fee[s]?|deadline[s]?|ferme[es]?|holiday[s]?|date limite|aujourd hui|today|tomorrow|demain)\b", text):
+    campus_inquiry = bool(selected or matches or re.search(
+        r"\b(uottawa|universite d ottawa|university of ottawa|campus|pavillon|library|bibliotheque|residence|uozone)\b", text
+    ))
+    if campus_inquiry and re.search(r"\b(horaire[s]?|ouvert[es]*|ouvr[ei]\w*|hours|open|close[s]?|frais|prix|fee[s]?|deadline[s]?|ferme[es]?|holiday[s]?|date limite|aujourd hui|today|tomorrow|demain)\b", text):
         message = ("Cette information peut changer. Je ne peux pas la confirmer ici. Vérifiez la page officielle.",
                    "This information can change. I can’t confirm it here. Check the official page.")
         if selected == "mrt" or re.search(r"\b(library|bibliotheque)\b", text):
@@ -343,7 +366,7 @@ def ask():
         else:
             source = format_fact(catalog[selected], lang)["source"] if selected else MAP[lang]
         return jsonify(lang=lang, text=message[lang == "en"], source=source)
-    if re.search(r"\b(courriel|email|e mail|telephone|phone|number|numero|password|mot de passe|wifi|wi fi|passwords)\b", text):
+    if campus_inquiry and re.search(r"\b(courriel|email|e mail|telephone|phone|number|numero|password|mot de passe|wifi|wi fi|passwords)\b", text):
         message = ("Je ne peux pas confirmer ce renseignement. Consultez la fiche officielle.",
                    "I can’t confirm that detail. Check the official page.")
         source = format_fact(catalog[selected], lang)["source"] if selected else MAP[lang]
@@ -369,9 +392,14 @@ def ask():
     if len(matches) > 1:
         return jsonify(lang=lang, text="De quel lieu ou service voulez-vous parler ?" if lang == "fr" else "Which place or service do you mean?", options=list(matches),
                        option_labels={key: catalog[key]["aliases"][0] if key not in PLACES else PLACES[key]["code"] for key in matches})
-    natural = answer_with_gemini(question, catalog, lang, selected, previous)
+    natural = answer_with_gemini(
+        question, catalog, lang, selected, previous,
+        allow_general=not campus_inquiry, exchange=data.get("exchange"),
+    )
     if natural:
         selected, answer = natural
+        if selected == "GENERAL":
+            return jsonify(lang=lang, text=answer, general=True)
         if catalog[selected].get("wayfinding") and not re.search(r"\bcopernicus\b", answer, re.I):
             natural = None
     if not selected and (
