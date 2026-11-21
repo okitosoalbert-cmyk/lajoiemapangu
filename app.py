@@ -15,7 +15,7 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 import qrcode
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 from official_site import lookup as lookup_uottawa
 
@@ -29,7 +29,9 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r4"
+BUILD = "2026.11.21-r5"
+SPEECH_MODEL = "gemini-3.8-flash-tts"
+LANGUAGES = {item["locale"]: item["name"] for item in json.loads((ROOT / "static" / "languages.json").read_text(encoding="utf-8"))}
 INSTANCE = secrets.token_hex(6)
 PLACES = json.loads((ROOT / "static" / "campus-map.json").read_text(encoding="utf-8"))["places"]
 DIRECTIONS = {
@@ -374,6 +376,115 @@ def ask():
     question = data.get("text")
     if not isinstance(question, str) or not question.strip() or len(question) > 500:
         return jsonify(error="invalid_question"), 400
+    spoken = data.get("speech_locale")
+    if isinstance(spoken, str) and spoken in LANGUAGES and spoken not in ("fr-CA", "en-CA"):
+        return answer_multilingual(question, data, spoken)
+    return answer_question(question, data)
+
+
+def answer_multilingual(question, data, locale):
+    key = gemini_key()
+    name = LANGUAGES[locale]
+    if not key:
+        messages = {
+            "zh-CN": "请先在这台电脑上配置 Gemini，才能使用普通话。",
+            "ja-JP": "日本語を使うには、このパソコンで Gemini を設定してください。",
+        }
+        if locale in messages:
+            return jsonify(lang=preferred(data), text=messages[locale], voice_locale=locale)
+        return jsonify(lang=preferred(data), text=gemini_notice("no_key", preferred(data)))
+
+    context = data.get("exchange")
+    contents = []
+    if isinstance(context, dict):
+        before, reply = context.get("question"), context.get("answer")
+        if all(isinstance(value, str) and 0 < len(value) <= limit
+               for value, limit in ((before, 500), (reply, 640))):
+            contents.extend([
+                {"role": "user", "parts": [{"text": before}]},
+                {"role": "model", "parts": [{"text": json.dumps({"mode": "general", "text": reply}, ensure_ascii=False)}]},
+            ])
+    contents.append({"role": "user", "parts": [{"text": question}]})
+    previous = data.get("previous")
+    known_previous = previous if isinstance(previous, str) and previous in facts() else None
+    schema = {
+        "type": "OBJECT",
+        "properties": {
+            "mode": {"type": "STRING", "enum": ["campus", "general"]},
+            "text": {"type": "STRING"},
+        },
+        "required": ["mode", "text"],
+    }
+    try:
+        outcome = json.loads(generate_gemini(key, (
+            f"You are the University of Ottawa kiosk language bridge for {name} ({locale}). "
+            "For specific questions about University of Ottawa buildings, directions, services, documents, "
+            "student cards or a follow-up about the last campus place, use mode campus and translate "
+            "the question into English. Keep place names, codes and intent. Otherwise use mode general "
+            f"and answer naturally in {name} in one to three short sentences. Do not invent campus facts. "
+            + (f"The last campus topic was {known_previous}. " if known_previous else "")
+        ), contents, schema))
+        text = outcome["text"].strip()
+        if not 0 < len(text) <= 640:
+            raise GeminiError("response")
+        if outcome["mode"] == "general":
+            return jsonify(lang=preferred(data), text=text, voice_locale=locale, general=True)
+        if outcome["mode"] != "campus" or len(text) > 500:
+            raise GeminiError("response")
+        result = answer_question(text, dict(data, lang="en"), use_gemini=False).get_json()
+        translated = generate_gemini(key, (
+            f"Translate the following verified kiosk reply into natural {name} ({locale}). Return only its "
+            "translation. Preserve building names, codes, all numbers, distances and instructions. Do not add facts."
+        ), [{"role": "user", "parts": [{"text": result["text"]}]}])
+        if not 0 < len(translated) <= 800:
+            raise GeminiError("response")
+        result.update(text=translated, voice_locale=locale)
+        return jsonify(result)
+    except GeminiError as error:
+        return jsonify(lang=preferred(data), text=gemini_notice(str(error), preferred(data)))
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return jsonify(lang=preferred(data), text=gemini_notice("response", preferred(data)))
+
+
+@app.post("/api/speech")
+def natural_speech():
+    data = body()
+    text, locale = data.get("text"), data.get("locale")
+    if not isinstance(locale, str) or locale not in LANGUAGES or not isinstance(text, str) or not 0 < len(text.strip()) <= 800:
+        return jsonify(error="invalid_speech"), 400
+    if request.remote_addr not in {"127.0.0.1", "::1", "::ffff:127.0.0.1"}:
+        return jsonify(error="local_speech_only"), 403
+    key = gemini_key()
+    if not key:
+        return jsonify(error="no_key"), 503
+    payload = {
+        "model": SPEECH_MODEL,
+        "input": [{
+            "type": "user_input",
+            "content": [{"type": "text", "text": text, "annotations": [{
+                "type": "speech_metadata",
+                "style": f"Speak in {LANGUAGES[locale]} with a warm conversational tone, natural pauses and clear pronunciation.",
+            }]}],
+        }],
+        "response_format": {"type": "audio", "mime_type": "audio/wav"},
+        "generation_config": {"speech_config": [{"voice": "Kore"}]},
+    }
+    request_data = Request("https://generativelanguage.googleapis.com/v1beta/interactions",
+                           json.dumps(payload).encode(), {"Content-Type": "application/json", "x-goog-api-key": key})
+    try:
+        with urlopen(request_data, timeout=12) as upstream:
+            voice = json.loads(upstream.read(12_000_000))
+        clips = [part["data"] for step in voice.get("steps", []) if step.get("type") == "model_output"
+                 for part in step.get("content", []) if part.get("type") == "audio"]
+        wav = base64.b64decode(clips[-1], validate=True)
+        if len(wav) < 44 or not wav.startswith(b"RIFF") or wav[8:12] != b"WAVE":
+            raise ValueError("Expected WAV")
+        return Response(wav, mimetype="audio/wav")
+    except (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError):
+        return jsonify(error="speech_unavailable"), 502
+
+
+def answer_question(question, data, *, use_gemini=True):
     lang = language(question, preferred(data))
     arithmetic = re.fullmatch(
         r"\s*(?:(?:combien\s+(?:font|fait)|calcule|what\s+is|calculate)\s+)?"
@@ -479,11 +590,11 @@ def ask():
         natural = answer_with_gemini(
             question, catalog, lang, selected, previous,
             allow_general=not campus_inquiry, exchange=data.get("exchange"),
-        )
+        ) if use_gemini else None
     except GeminiError as error:
         natural = None
         gemini_status = str(error)
-    if not campus_inquiry and natural is None and not gemini_key():
+    if use_gemini and not campus_inquiry and natural is None and not gemini_key():
         gemini_status = "no_key"
     if natural:
         selected, answer = natural
