@@ -9,7 +9,7 @@ const translations = {
     privacy: "Sur cette borne, votre conversation s’efface à la fin de la session.", prototype: "PROTOTYPE U-GUIDE", standby: "Mode borne",
     officialMap: "Carte officielle du campus", recap: "Récapitulatif", reset: "Nouvelle session", camera: "Activer la détection de présence",
     placeholder: "Écrivez votre question…", send: "Envoyer", mic: "Dicter la question", keyboard: "Clavier tactile", sound: "Activer la voix",
-    mute: "Couper la voix", ready: "Prêt à vous aider", working: "Recherche en cours…", micStarting: "Micro en préparation…", listening: "Je vous écoute…", speaking: "Gee-Gee parle…",
+    mute: "Couper la voix", ready: "Prêt à vous aider", working: "Recherche en cours…", micStarting: "Micro en préparation…", speechStarting: "Préparation de la voix…", listening: "Je vous écoute…", speaking: "Gee-Gee parle…",
     failure: "La réponse est indisponible. Réessayez dans un instant.", micFailure: "La dictée est indisponible. Vous pouvez écrire la question.",
     verified: "Vérifié le", source: "Source officielle", route: "Itinéraire", scan: "Scannez pour emporter vos réponses vérifiées. Lien utilisable une fois, pendant 15 minutes.",
     noQr: "Aucune réponse vérifiée à emporter.", qrWait: "Préparation du code QR…", qrFailure: "Le code QR est indisponible.",
@@ -24,7 +24,7 @@ const translations = {
     privacy: "Your conversation clears from this kiosk when the session ends.", prototype: "U-GUIDE PROTOTYPE", standby: "Kiosk mode",
     officialMap: "Official campus map", recap: "Your recap", reset: "New session", camera: "Enable presence detection",
     placeholder: "Type your question…", send: "Send", mic: "Dictate question", keyboard: "Touch keyboard", sound: "Enable speech",
-    mute: "Mute speech", ready: "Ready to help", working: "Looking that up…", micStarting: "Preparing microphone…", listening: "Listening…", speaking: "Gee-Gee is speaking…",
+    mute: "Mute speech", ready: "Ready to help", working: "Looking that up…", micStarting: "Preparing microphone…", speechStarting: "Preparing speech…", listening: "Listening…", speaking: "Gee-Gee is speaking…",
     failure: "The answer is unavailable. Please try again shortly.", micFailure: "Dictation is unavailable. You can type your question.",
     verified: "Verified on", source: "Official source", route: "Directions", scan: "Scan to take your verified answers with you. This link works once, within 15 minutes.",
     noQr: "There are no verified answers to take with you.", qrWait: "Preparing the QR code…", qrFailure: "The QR code is unavailable.",
@@ -55,6 +55,11 @@ let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
 let audioActive = false, echoUntil = 0, speechTimer;
+let speechLocale = "fr-CA", naturalVoice = false, cloudPlayback;
+try {
+  speechLocale = localStorage.getItem("innova-speech-locale") || speechLocale;
+  naturalVoice = localStorage.getItem("innova-natural-voice") === "true";
+} catch {}
 const ABSENCE_MS = 5000;
 const SPEECH_PAUSE_MS = 1700;
 let voiceDraft = "", voiceDraftTimer;
@@ -68,6 +73,62 @@ const copy = () => translations[lang];
 const speechPreview = document.createElement("div");
 speechPreview.id = "speechPreview";
 $("notice").before(speechPreview);
+
+const voiceSettings = document.createElement("div");
+voiceSettings.className = "voice-settings";
+const languageLabel = document.createElement("label");
+const languageName = document.createElement("span");
+const languageSelect = document.createElement("select");
+languageSelect.id = "speechLocale";
+languageLabel.append(languageName, languageSelect);
+const naturalLabel = document.createElement("label");
+const naturalToggle = document.createElement("input");
+naturalToggle.type = "checkbox";
+naturalToggle.id = "naturalVoice";
+naturalToggle.checked = naturalVoice;
+const naturalName = document.createElement("span");
+naturalLabel.append(naturalToggle, naturalName);
+voiceSettings.append(languageLabel, naturalLabel);
+$("messages").before(voiceSettings);
+$("question").dir = "auto";
+
+function speechOptions() {
+  languageName.textContent = lang === "fr" ? "Langue parlée" : "Spoken language";
+  naturalName.textContent = lang === "fr" ? "Voix naturelle Gemini" : "Gemini natural voice";
+  naturalToggle.title = lang === "fr" ? "Envoie le texte des réponses à Gemini pour les lire." : "Send reply text to Gemini to read it aloud.";
+}
+
+function chooseSpeechLocale(value) {
+  if (speechLocale === value) return;
+  speechLocale = value;
+  languageSelect.value = value;
+  try { localStorage.setItem("innova-speech-locale", value); } catch {}
+  stopListening();
+  if (["listening", "micStarting"].includes(state)) status("ready");
+  voiceBlocked = false;
+  scheduleListening();
+}
+
+languageSelect.onchange = () => {
+  chooseSpeechLocale(languageSelect.value);
+  if (speechLocale === "fr-CA") locale("fr");
+  if (speechLocale === "en-CA") locale("en");
+};
+naturalToggle.onchange = () => {
+  naturalVoice = naturalToggle.checked;
+  try { localStorage.setItem("innova-natural-voice", String(naturalVoice)); } catch {}
+};
+fetch("/static/languages.json").then(response => response.json()).then(languages => {
+  const display = new Intl.DisplayNames(["fr"], {type:"language"});
+  for (const item of languages) {
+    const native = new Intl.DisplayNames([item.locale], {type:"language"}).of(item.locale);
+    const title = { "fr-CA":"Français", "en-CA":"English", "zh-CN":"普通话 · Mandarin", "ja-JP":"日本語 · Japonais" }[item.locale]
+      || (display.of(item.locale) || item.name) + (native ? " · " + native : "");
+    languageSelect.add(new Option(title, item.locale));
+  }
+  if (![...languageSelect.options].some(option => option.value === speechLocale)) speechLocale = lang === "fr" ? "fr-CA" : "en-CA";
+  languageSelect.value = speechLocale;
+}).catch(() => { languageLabel.hidden = true; });
 
 function updateAutomatic() {
   const button = $("camera");
@@ -164,6 +225,7 @@ function locale(value) {
   labelButton("sound", sound ? "sound" : "mute", sound ? copy().mute : copy().sound);
   status(state);
   updateAutomatic();
+  speechOptions();
   buildKeyboard();
 }
 
@@ -203,11 +265,13 @@ function touch() {
   activity = setTimeout(() => enterStandby(), 120000);
 }
 
-function bubble(text, user = false) {
+function bubble(text, user = false, spoken = null) {
   const article = document.createElement("div");
   article.className = user ? "bubble user" : "bubble";
   const p = document.createElement("p");
   p.textContent = text;
+  p.dir = "auto";
+  if (spoken) p.lang = spoken;
   article.append(p);
   $("messages").append(article);
   $("messages").scrollTop = $("messages").scrollHeight;
@@ -223,18 +287,78 @@ function link(container, url, label) {
   container.append(a);
 }
 
+function releaseCloudPlayback(job) {
+  job.controller.abort();
+  if (job.audio) {
+    job.audio.pause();
+    job.audio.removeAttribute("src");
+  }
+  if (job.url) URL.revokeObjectURL(job.url);
+  if (cloudPlayback === job) cloudPlayback = undefined;
+}
+
 function stopVoice() {
   clearTimeout(speechTimer);
   if (!utterance) return;
   echoUntil = performance.now() + 350;
   utterance = undefined;
-  speech?.cancel();
+  if (cloudPlayback) releaseCloudPlayback(cloudPlayback);
+  else speech?.cancel();
 }
 
-function say(text, replyLang) {
-  if (!sound || !speech) return;
+async function say(text, replyLang, spoken) {
+  if (!sound) return;
   stopVoice();
-  const locale = replyLang === "fr" ? "fr-CA" : "en-CA";
+  const target = spoken || (replyLang === "fr" ? "fr-CA" : "en-CA");
+  if (!naturalVoice) { sayLocal(text, target); return; }
+  const job = {controller: new AbortController()};
+  cloudPlayback = utterance = job;
+  status("speechStarting");
+  const limit = setTimeout(() => job.controller.abort(), 13000);
+  const fallback = () => {
+    if (utterance !== job) return;
+    utterance = undefined;
+    releaseCloudPlayback(job);
+    listeningStatus();
+    sayLocal(text, target);
+  };
+  try {
+    const response = await fetch("/api/speech", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({text, locale: target}), signal: job.controller.signal,
+    });
+    if (!response.ok) throw Error("Voice unavailable");
+    const audio = await response.blob();
+    if (utterance !== job) return;
+    job.url = URL.createObjectURL(audio);
+    job.audio = new Audio(job.url);
+    job.audio.volume = Number($("volume").value);
+    job.audio.onplaying = () => {
+      if (utterance !== job) return;
+      status("speaking");
+      animate(/speak|talk|parl|mouth/i);
+    };
+    job.audio.onended = () => {
+      if (utterance !== job) return;
+      utterance = undefined;
+      releaseCloudPlayback(job);
+      echoUntil = performance.now() + 350;
+      listeningStatus();
+      animate(/idle|repos/i);
+      scheduleListening();
+    };
+    job.audio.onerror = fallback;
+    await job.audio.play();
+  } catch {
+    fallback();
+  } finally {
+    clearTimeout(limit);
+  }
+}
+
+function sayLocal(text, locale) {
+  if (!sound || !speech) return;
+  const replyLang = locale.split("-")[0];
   const installed = (speech.getVoices?.() || []).filter(voice => voice.localService);
   const preferredVoice = installed.find(voice => voice.lang.toLowerCase() === locale.toLowerCase()) ||
     installed.find(voice => voice.lang.toLowerCase().startsWith(replyLang + "-"));
@@ -300,14 +424,14 @@ async function ask(text) {
   $("notice").textContent = "";
   $("question").value = "";
   $("suggestions").hidden = true;
-  bubble(text, true);
+  bubble(text, true, speechLocale);
   const controller = new AbortController();
   pending = controller;
   $("send").disabled = true;
   status("working");
-  const timeout = setTimeout(() => controller.abort(), 12500);
+  const timeout = setTimeout(() => controller.abort(), speechLocale === "fr-CA" || speechLocale === "en-CA" ? 12500 : 21500);
   try {
-    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation, exchange: generalExchange}), signal: controller.signal});
+    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation, exchange: generalExchange, speech_locale: speechLocale}), signal: controller.signal});
     if (expectedInstance && response.headers.get("X-INNOVA-Instance") !== expectedInstance) {
       if (pending === controller) {
         $("notice").textContent = lang === "fr"
@@ -324,7 +448,7 @@ async function ask(text) {
     if (result.general) lastTopic = undefined;
     confirmation = result.option_queries && result.options?.length === 1 ? result.options[0] : undefined;
     const words = translations[result.lang];
-    const article = bubble(result.text);
+    const article = bubble(result.text, false, result.voice_locale || result.lang);
     const links = document.createElement("div");
     links.className = "links";
     if (result.source) link(links, result.source, result.source_title || words.source);
@@ -358,7 +482,7 @@ async function ask(text) {
       if (!items.includes(result.id)) items.push(result.id);
     }
     mascot?.play("nod");
-    say(result.text, result.lang);
+    say(result.text, result.lang, result.voice_locale);
   } catch {
     if (pending === controller) $("notice").textContent = copy().failure;
   } finally {
@@ -580,12 +704,8 @@ function cameraFailed() {
 
 $("ask").onsubmit = (event) => { event.preventDefault(); ask($("question").value); };
 for (const id of ["fr", "en"]) $(id).onclick = () => {
-  if (lang === id) return;
-  stopListening();
-  if (["listening", "micStarting"].includes(state)) status("ready");
-  voiceBlocked = false;
+  chooseSpeechLocale(id + "-CA");
   locale(id);
-  scheduleListening();
 };
 for (const node of document.querySelectorAll("[data-icon]")) node.innerHTML = svg(node.dataset.icon);
 for (const button of document.querySelectorAll("[data-topic]")) button.onclick = () => ask(copy().topics[button.dataset.topic]);
@@ -593,7 +713,7 @@ function setSound(value) {
   sound = value;
   if (!sound) {
     stopVoice();
-    if (state === "speaking") listeningStatus();
+    if (["speaking", "speechStarting"].includes(state)) listeningStatus();
     scheduleListening();
   }
   $("volume").hidden = !sound;
@@ -671,7 +791,7 @@ function startListening(auto = false) {
   const active = new Recognition();
   recognition = active;
   if (!utterance && !pending) status("micStarting");
-  active.lang = lang === "fr" ? "fr-CA" : "en-CA";
+  active.lang = speechLocale;
   active.interimResults = true;
   active.continuous = auto;
   let ignoreSpeech = false;
@@ -795,7 +915,7 @@ document.addEventListener("visibilitychange", () => {
 for (const event of ["pointerdown", "keydown"]) document.addEventListener(event, () => {
   if (!$("idle").open && !$("summary").open) touch();
 });
-locale("fr");
+locale(speechLocale === "en-CA" ? "en" : "fr");
 setSound(sound);
 touch();
 if (new URLSearchParams(location.search).has("borne")) enterStandby();
