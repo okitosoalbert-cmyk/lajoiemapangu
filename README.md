@@ -100,3 +100,5 @@ Quand Gemini est configuré, essaie « Combien font douze fois huit ? » ou « E
 Pour vérifier la connexion réelle, double-clique sur `Tester-Gemini.bat` après un premier lancement. Le test utilise la clé locale pour envoyer une question de calcul à Google et affiche le résultat ou la cause d’échec, sans afficher la clé. Le modèle par défaut est `gemini-3.5-flash-lite`.
 
 Les questions générales sont envoyées directement à Gemini. Si ce service échoue, la borne affiche son diagnostic et ne lance pas de recherche dans les pages d’uOttawa.
+
+Pour confirmer la version qui répond sur Windows, regarde le numéro et le dossier dans la fenêtre de `Lancer-INNOVA.bat`. L’onglet ouvert par le lanceur contient le même numéro dans son adresse. L’URL `/version` sur ce même port indique le numéro du serveur qui répond.
