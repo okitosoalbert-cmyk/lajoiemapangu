@@ -128,3 +128,5 @@ Pour préparer un déplacement, demande « Comment aller de CRX à Fauteux ? ».
 La date et l’heure sont calculées à chaque demande à partir de l’horloge du PC, dans le fuseau d’Ottawa. « Cette session » cible le trimestre de cette date et l’horaire public détermine les sections disponibles. La date sur les fiches de référence correspond à leur vérification.
 
 Pour reconnaître la destination, le bouton **Vue aérienne 3D** ouvre Google Earth et **Voir depuis la rue** ouvre Street View près du pavillon. Ces vues s’ouvrent dans un autre onglet et dépendent de la couverture des images de Google.
+
+La carte s’ouvre sur une maquette 3D rapprochée du pavillon. **Trajet** cadre l’itinéraire piéton, et **Pavillon** revient à la vue rapprochée. Les images photographiques restent accessibles avec Google Earth et Street View.

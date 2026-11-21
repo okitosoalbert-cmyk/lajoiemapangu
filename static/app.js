@@ -510,6 +510,16 @@ async function ask(text, lastSpeechAt) {
     confirmation = result.option_queries && result.options?.length === 1 ? result.options[0] : undefined;
     const words = translations[result.lang];
     const article = bubble(result.text, false, result.voice_locale || result.lang, sound);
+    const scrollToReply = () => {
+      if (!article.isConnected || article.hidden) return;
+      const viewport = $("messages");
+      const map = article.querySelector(".campus-map");
+      if (map) {
+        viewport.scrollTop += map.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+      } else {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
+    };
     if (result.courses?.length) {
       const details = document.createElement("details");
       const summary = document.createElement("summary");
@@ -533,9 +543,7 @@ async function ask(text, lastSpeechAt) {
       link(links, result.map, words.officialMap);
       import("/static/campus-map.js")
         .then(({showCampusMap}) => showCampusMap(article, result.map_destination || result.id, result.lang, result.origin))
-        .then(() => {
-          if (article.isConnected) $("messages").scrollTop = $("messages").scrollHeight;
-        })
+        .then(scrollToReply)
         .catch(() => {});
     }
     if (result.route) link(links, result.route, words.route);
@@ -561,7 +569,7 @@ async function ask(text, lastSpeechAt) {
       if (!article.isConnected) return;
       article.hidden = false;
       mascot?.play("nod");
-      $("messages").scrollTop = $("messages").scrollHeight;
+      scrollToReply();
     }, lastSpeechAt && lastSpeechAt + REPLY_TARGET_MS);
   } catch {
     if (pending === controller) $("notice").textContent = copy().failure;

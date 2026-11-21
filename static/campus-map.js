@@ -61,8 +61,8 @@ function photoViews(destination, paths, fr) {
 
 export async function showCampusMap(container, destination, lang, originId) {
   const labels = lang === "fr"
-    ? {title:"Carte 3D du campus", plan:"Vue schématique · CRX comme point de repère", left:"Tourner à gauche", right:"Tourner à droite", closer:"Agrandir", farther:"Réduire", reset:"Vue du campus", focus:"Recentrer", fail:"Carte intégrée indisponible. Ouvre la carte officielle dans la réponse."}
-    : {title:"3D campus map", plan:"Schematic view · CRX reference point", left:"Rotate left", right:"Rotate right", closer:"Zoom in", farther:"Zoom out", reset:"Campus view", focus:"Recenter", fail:"The embedded map is unavailable. Open the official map in the answer."};
+    ? {title:"Carte 3D du campus", plan:"Vue schématique · CRX comme point de repère", left:"Tourner à gauche", right:"Tourner à droite", closer:"Agrandir", farther:"Réduire", reset:"Vue du campus", fail:"Carte intégrée indisponible. Ouvre la carte officielle dans la réponse."}
+    : {title:"3D campus map", plan:"Schematic view · CRX reference point", left:"Rotate left", right:"Rotate right", closer:"Zoom in", farther:"Zoom out", reset:"Campus view", fail:"The embedded map is unavailable. Open the official map in the answer."};
   try {
     const data = await campus;
     const target = data.places[destination];
@@ -109,8 +109,8 @@ export async function showCampusMap(container, destination, lang, originId) {
     const guide = document.createElement("p");
     guide.className = "map-guide";
     guide.setAttribute("aria-live", "polite");
-    heading.after(departure, guide);
-    caption.firstChild.textContent = (fr ? "Carte interactive · " : "Interactive map · ");
+    controls.after(departure, guide);
+    caption.firstChild.textContent = (fr ? "Maquette du campus · " : "Campus model · ");
     const dialog = document.createElement("dialog");
     dialog.className = "campus-dialog";
     dialog.setAttribute("aria-label", heading.textContent);
@@ -124,12 +124,25 @@ export async function showCampusMap(container, destination, lang, originId) {
       dialog.before(map);
       render();
     });
-    let angle = -.35, tilt = .57, zoom = 1, center = target.point, route;
+    const footprint = data.buildings.filter(([, , id]) => id === destination);
+    const peak = Math.max(0, ...footprint.map(([, height]) => height));
+    const detailRadius = Math.max(14, ...footprint.flatMap(([points]) =>
+      points.map(([x, y]) => Math.hypot(x - target.point[0], y - target.point[1]))));
+    let angle, tilt, zoom, center, route;
+    function focusBuilding() {
+      map.dataset.view = "building";
+      center = target.point;
+      angle = -.55;
+      tilt = .66;
+      zoom = Math.min(3.4, 110 / Math.max(detailRadius, peak * 1.6));
+    }
+    focusBuilding();
     pedestrianMap ||= fetch("/static/pedestrian-map.json").then(response => response.ok ? response.json() : null).catch(() => null);
     const graph = await pedestrianMap;
     if (!map.isConnected) return;
     const reference = () => data.places[originKey];
     function focusRoute() {
+      map.dataset.view = "route";
       const points = [target.point, ...(reference() ? [reference().point] : []), ...(route?.path || [])];
       const xs = points.map(([x]) => x), ys = points.map(([, y]) => y);
       const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
@@ -148,10 +161,13 @@ export async function showCampusMap(container, destination, lang, originId) {
               : ` · About ${length} m on foot (${minutes} min). The route connects mapped paths near the buildings.`)
         : start ? (fr ? " · Aucun trajet piéton cartographié entre ces repères." : " · No mapped walking route between these landmarks.")
                 : (fr ? " · Choisis un point de départ pour voir le trajet." : " · Choose a starting point to see the route."));
-      focusRoute();
       render();
     }
-    select.onchange = updateRoute;
+    select.onchange = () => {
+      updateRoute();
+      focusRoute();
+      render();
+    };
     function render() {
       const width = canvas.clientWidth, height = canvas.clientHeight;
       if (!width || !height) return;
@@ -174,7 +190,10 @@ export async function showCampusMap(container, destination, lang, originId) {
         ctx.fill();
         if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
       }
-      ctx.fillStyle = "#eef1ec";
+      const ground = ctx.createLinearGradient(0, 0, width, height);
+      ground.addColorStop(0, "#f6f2e9");
+      ground.addColorStop(1, "#d8e3d8");
+      ctx.fillStyle = ground;
       ctx.fillRect(0,0,width,height);
       for (const [points, kind] of data.paths) {
         ctx.beginPath();
@@ -183,11 +202,11 @@ export async function showCampusMap(container, destination, lang, originId) {
           if (i) ctx.lineTo(x,y);
           else ctx.moveTo(x,y);
         });
-        ctx.lineWidth = kind === "road" ? 4 : 1.25;
+        ctx.lineWidth = kind === "road" ? Math.max(4, 3 * scale) : Math.max(1.25, scale);
         ctx.strokeStyle = kind === "road" ? "#fffdfb" : "#c5cec1";
         ctx.stroke();
       }
-      if (route) {
+      if (route && map.dataset.view !== "building") {
         ctx.beginPath();
         route.path.forEach((point, index) => {
           const [x, y] = project(point);
@@ -206,31 +225,49 @@ export async function showCampusMap(container, destination, lang, originId) {
       ctx.lineWidth = .7;
       const visible = data.buildings.filter(([points]) =>
         points.some(point => Math.hypot(point[0] - center[0], point[1] - center[1]) < 540 / zoom));
-      visible.sort((a,b) => depth(a[0][0]) - depth(b[0][0]));
+      const frontDepth = ([points]) => Math.max(...points.map(depth));
+      visible.sort((a,b) => frontDepth(a) - frontDepth(b));
+      if (tilt !== 1) {
+        for (const [border, z, id] of visible) {
+          const offset = z * .55;
+          polygon(border.map(([x, y]) => project([x + offset, y + offset])),
+            id === destination ? "#65334038" : "#344c4926");
+        }
+      }
       for (const [border, z, id] of visible) {
         const active = id === destination;
         const lower = border.map(point => project(point)), upper = border.map(point => project(point,z));
-        for (let i = 0; i < border.length; i++) {
-          const next = (i + 1) % border.length;
-          polygon([lower[i], lower[next], upper[next], upper[i]], active ? "#77163a" : "#a1a9ab");
+        if (tilt !== 1) {
+          const faces = border.map((_, i) => i);
+          faces.sort((a,b) => depth(border[a]) - depth(border[b]));
+          for (const i of faces) {
+            const next = (i + 1) % border.length;
+            const dx = upper[next][0] - upper[i][0], dy = upper[next][1] - upper[i][1];
+            const shade = Math.round(7 * dy / (Math.hypot(dx, dy) || 1));
+            const fill = active ? `hsl(342 44% ${44 + shade}%)` : `hsl(152 8% ${71 + shade}%)`;
+            polygon([lower[i], lower[next], upper[next], upper[i]], fill,
+              active ? "#6f2c4533" : "#50635c20");
+          }
         }
-        polygon(upper, active ? "#ae315b" : id ? "#d8c3ce" : "#cdd2d0", active ? "#77163a" : "#a6afaa");
+        polygon(upper, active ? "#b9627f" : id ? "#e8ded3" : "#e4e9e1", active ? "#812a4b" : "#a8b1a8");
       }
-      function marker(point, title, color) {
-        const [x,y] = project(point, 34);
+      function marker(point, title, color, elevation = 18) {
+        const [x,y] = project(point, elevation);
         ctx.font = "bold 12px system-ui";
         const labelWidth = ctx.measureText(title).width + 20;
         if (x < 0 || x > width || y < 8 || y > height) return;
         ctx.fillStyle = color;
-        ctx.fillRect(x - labelWidth / 2, y - 24, labelWidth, 21);
+        ctx.beginPath();
+        ctx.roundRect(x - labelWidth / 2, y - 24, labelWidth, 21, 6);
+        ctx.fill();
         polygon([[x-4,y-3],[x+4,y-3],[x,y+4]], color);
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
         ctx.fillText(title,x,y-9);
       }
       const key = reference();
-      if (key) marker(key.point, (fr ? "Départ · " : "Start · ") + key.code, "#245c5b");
-      marker(target.point, (fr ? "Arrivée · " : "Destination · ") + target.code, "#721538");
+      if (key && map.dataset.view !== "building") marker(key.point, (fr ? "Départ · " : "Start · ") + key.code, "#245c5b");
+      marker(target.point, (fr ? "Arrivée · " : "Destination · ") + target.code, "#721538", peak + 8);
 
       const [nx, ny] = [width-24, 30];
       ctx.save();
@@ -254,12 +291,17 @@ export async function showCampusMap(container, destination, lang, originId) {
     }
     addButton("↶", labels.left, () => { angle -= .28; });
     addButton("↷", labels.right, () => { angle += .28; });
-    addButton("+", labels.closer, () => { zoom = Math.min(zoom * 1.3, 2.5); });
+    addButton("+", labels.closer, () => { zoom = Math.min(zoom * 1.3, 4.5); });
     addButton("−", labels.farther, () => { zoom = Math.max(zoom / 1.3, .35); });
-    addButton(labels.reset, labels.reset, () => { center = data.regions?.[region] || data.center; zoom = .38; });
-    addButton(labels.focus, labels.focus, focusRoute);
+    addButton(fr ? "Pavillon" : "Building", fr ? "Recentrer sur le pavillon" : "Center on the building", focusBuilding);
+    addButton(fr ? "Trajet" : "Route", fr ? "Afficher le trajet" : "Show walking route", focusRoute);
+    addButton(labels.reset, labels.reset, () => {
+      map.dataset.view = "campus";
+      center = data.regions?.[region] || data.center;
+      zoom = .38;
+    });
     addButton(fr ? "Vue 2D / 3D" : "2D / 3D view", fr ? "Basculer entre 2D et 3D" : "Switch between 2D and 3D", () => {
-      tilt = tilt === 1 ? .57 : 1;
+      tilt = tilt === 1 ? .66 : 1;
       angle = tilt === 1 ? 0 : -.35;
     });
     addButton(fr ? "Agrandir la carte" : "Expand map", fr ? "Agrandir la carte" : "Expand map", () => {

@@ -69,3 +69,6 @@ dialog{border:1px solid var(--edge);border-radius:22px;color:var(--ink);padding:
 .campus-photo-views a:hover{text-decoration:underline}
 .campus-photo-views a:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
 .campus-photo-views small{flex-basis:100%;color:var(--muted);font-size:11px}
+
+.campus-map[data-view="building"] canvas{height:clamp(250px,36vh,355px);border:1px solid #d8e0d6}
+.campus-dialog>.campus-map[data-view="building"] canvas{height:clamp(210px,60vh,680px)}
