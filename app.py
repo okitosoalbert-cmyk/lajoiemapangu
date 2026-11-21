@@ -29,7 +29,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r3"
+BUILD = "2026.11.21-r4"
 INSTANCE = secrets.token_hex(6)
 PLACES = json.loads((ROOT / "static" / "campus-map.json").read_text(encoding="utf-8"))["places"]
 DIRECTIONS = {
