@@ -47,5 +47,4 @@ dialog{border:1px solid var(--edge);border-radius:22px;color:var(--ink);padding:
 .voice-settings{display:flex;flex-wrap:wrap;align-items:center;gap:8px 15px;margin-top:15px;color:var(--muted);font-size:12px}
 .voice-settings label{display:inline-flex;align-items:center;gap:6px;max-width:100%}
 .voice-settings select{max-width:min(43vw,210px);border:1px solid var(--edge);border-radius:8px;background:white;color:var(--ink);padding:5px;font:inherit}
-.voice-settings input{accent-color:var(--wine)}
 .voice-settings label[hidden]{display:none}
