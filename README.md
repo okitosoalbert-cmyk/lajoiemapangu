@@ -102,3 +102,5 @@ Pour vérifier la connexion réelle, double-clique sur `Tester-Gemini.bat` aprè
 Les questions générales sont envoyées directement à Gemini. Si ce service échoue, la borne affiche son diagnostic et ne lance pas de recherche dans les pages d’uOttawa.
 
 Pour confirmer la version qui répond sur Windows, regarde le numéro et le dossier dans la fenêtre de `Lancer-INNOVA.bat`. L’onglet ouvert par le lanceur contient le même numéro dans son adresse. L’URL `/version` sur ce même port indique le numéro du serveur qui répond.
+
+Les calculs courts écrits avec des chiffres et des signes simples, comme « Combien font 12 x 8 ? », sont calculés localement. Les autres questions générales, y compris le test de connexion dans `Tester-Gemini.bat`, continuent de passer par Gemini. Sur Windows, le lanceur réserve son port en mode exclusif et l’onglet vérifie qu’il obtient les réponses du serveur qui l’a ouvert.
