@@ -145,8 +145,8 @@ def normalize(text):
 
 def language(text, default):
     words = set(normalize(text).split())
-    fr = words & set("ou trouve est je peux comment adresse chercher quels quelle les des une pour bonjour salut aide manger horaires bibliotheque merci loin depuis oui exactement".split())
-    en = words & set("where is what how i can the to find near hours library hello get food address are thanks thank far list building buildings hi help from yes exactly".split())
+    fr = words & set("ou trouve est je peux comment adresse chercher quels quelle les des une pour bonjour salut aide manger horaires bibliotheque merci loin depuis oui exactement carte etudiante".split())
+    en = words & set("where is what how i can the to find near hours library hello get food address are thanks thank far list building buildings hi help from yes exactly card student".split())
     return "fr" if len(fr) > len(en) else "en" if len(en) > len(fr) else default
 
 
@@ -231,6 +231,34 @@ def answer_with_gemini(question, catalog, lang, topic, previous):
     return None
 
 
+def student_card_answer(text, lang, catalog):
+    result = format_fact(catalog["student-card"], lang)
+    result["source_title"] = "Obtenir ou remplacer ta carte étudiante" if lang == "fr" else "Get or replace your student card"
+    destination = "res-90-university"
+    if re.search(r"\b(changement de nom|change(?:d)? (?:my |your )?(?:legal )?name|nom legal|legal name)\b", text):
+        destination = "tabaret-hall"
+        result["text"] = (
+            "Pour remplacer ta carte après un changement de nom légal, va à InfoService au pavillon Tabaret. Consulte la liste officielle des pièces d’identité à apporter."
+            if lang == "fr" else
+            "For a replacement after a legal name change, go to InfoService in Tabaret Hall. Check the official list of ID you’ll need to bring."
+        )
+    elif re.search(r"\b(perdu[e]?|vol[eé]e?|endommage[e]?|remplac\w*|lost|stolen|damaged|replac\w*)\b", text):
+        result["text"] = (
+            "Si ta carte est perdue ou volée, tu peux la désactiver pour protéger les fonds. Pour un remplacement, consulte les consignes et les frais sur la page officielle du Service de la carte."
+            if lang == "fr" else
+            "If your card was lost or stolen, you can deactivate it to protect your balance. Check the official Card Service page for replacement steps and fees."
+        )
+    elif re.search(r"\b(recuper\w*|retir\w*|ramass\w*|pick up|pickup|collect|pre[te]+|ready|horaires?|hours|open)\b", text):
+        result["text"] = (
+            "Pour récupérer ta carte, attends le courriel qui confirme qu’elle est prête. Ensuite, va au 90 Université, local 145, avec une pièce d’identité valide. Vérifie les heures du Service de la carte sur la page officielle."
+            if lang == "fr" else
+            "Wait for the email confirming your card is ready. Then go to 90 University, room 145, with valid ID. Check the official page for Card Service hours."
+        )
+    location = format_fact(catalog[destination], lang)
+    result.update(map=location["map"], map_destination=destination, route=location["route"])
+    return result
+
+
 def body():
     data = request.get_json(silent=True)
     return data if isinstance(data, dict) else {}
@@ -269,6 +297,10 @@ def ask():
                        else "You’re welcome! Are you looking for another place or service?")
     mentions = find_mentions(text, catalog)
     matches = dict.fromkeys(key for _, _, key in mentions)
+    if "student-card" in matches or (not matches and previous == "student-card" and re.search(
+        r"\b(carte|la recuperer|la remplacer|l obtenir|la retirer|ou je vais|c est ou|pick it up|replace it|is it ready|where do i go)\b", text
+    )):
+        return jsonify(lang=lang, **student_card_answer(text, lang, catalog))
     selected = next(iter(matches)) if len(matches) == 1 else None
     confirmation = data.get("confirmation")
     if not matches and isinstance(confirmation, str) and confirmation in PLACES and re.fullmatch(
