@@ -245,7 +245,7 @@ async function ask(text) {
   pending = controller;
   $("send").disabled = true;
   status("working");
-  const timeout = setTimeout(() => controller.abort(), 7500);
+  const timeout = setTimeout(() => controller.abort(), 11000);
   try {
     const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation}), signal: controller.signal});
     if (!response.ok) throw Error("Request failed");
@@ -256,7 +256,8 @@ async function ask(text) {
     const article = bubble(result.text);
     const links = document.createElement("div");
     links.className = "links";
-    if (result.source) link(links, result.source, words.source);
+    if (result.source) link(links, result.source, result.source_title || words.source);
+    for (const related of result.related || []) link(links, related.url, related.title);
     if (result.map) {
       link(links, result.map, words.officialMap);
       import("/static/campus-map.js")
