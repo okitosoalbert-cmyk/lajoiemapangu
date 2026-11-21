@@ -92,3 +92,7 @@ Demandez « Comment aller de Tabaret à SITE ? » ou, après une destination, «
 ## Recherche dans les pages publiques uOttawa
 
 Si une question dépasse les fiches locales, INNOVA peut chercher dans un instantané de 22 563 entrées URL-langue issues des plans de site publics d’uOttawa. Les actualités, événements et répertoires de profils ont été écartés de cet instantané. Le classement s’effectue sur le PC. Le serveur consulte jusqu’à trois pages publiques uOttawa et présente un passage ou des liens officiels. Les extraits sont mis en cache en mémoire pendant quinze minutes. Cette recherche fonctionne sans clé Gemini et demande Internet. L’instantané doit être renouvelé pour inclure les nouvelles adresses, tandis que le contenu des pages est lu à la demande. Les espaces de connexion, les PDF et les pages absentes de l’index ne sont pas couverts.
+
+### Questions du quotidien avec Gemini
+
+Quand Gemini est configuré, essaie « Combien font douze fois huit ? » ou « Explique-moi la méthode Pomodoro ». INNOVA peut donner une réponse courte, la lire et comprendre une relance comme « Donne-moi un exemple ». Pour cette relance, le texte de l’échange précédent peut être transmis à Gemini. Il reste dans la session active côté borne et est effacé à la mise en veille ou à la fin de la session. Les réponses générales ne sont pas ajoutées au récapitulatif QR. Les questions spécifiques au campus continuent de passer par les fiches et sources officielles.
