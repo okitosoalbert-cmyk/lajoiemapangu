@@ -118,5 +118,161 @@
     "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/university-centre-ucu",
     "address": "85 University Private, Ottawa",
     "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/centre-universitaire-ucu"
+  },
+  {
+    "id": "scholarships",
+    "aliases": [
+      "bourse",
+      "bourses",
+      "aide financiere",
+      "scholarship",
+      "scholarships",
+      "financial aid",
+      "bursary",
+      "bursaries"
+    ],
+    "fr": "Cherche les bourses auxquelles tu pourrais être admissible dans Bourses en ligne, accessible depuis uoZone. Ouvre la fiche d’une bourse avant de préparer ta demande pour voir ses critères et ses dates.",
+    "en": "Start with Online Scholarships and Bursaries in uoZone. Open the award you’re interested in to check its eligibility criteria and deadlines before preparing your application.",
+    "source": "https://www.uottawa.ca/study/fees-financial-support/scholarships-awards-overview",
+    "source_fr": "https://www.uottawa.ca/etudes/droits-universitaires-soutien-financier/bourses-apercu"
+  },
+  {
+    "id": "health",
+    "aliases": [
+      "sante",
+      "sante mentale",
+      "stress",
+      "anxiete",
+      "psychologue",
+      "parler a quelqu un",
+      "mental health",
+      "anxiety",
+      "counselling",
+      "wellness",
+      "doctor",
+      "medecin"
+    ],
+    "fr": "Tu peux commencer par la page Santé et mieux-être. Elle te dirige vers les ressources de soutien et les options pour prendre rendez-vous avec les services étudiants.",
+    "en": "Start with Student Health and Wellness. It points you to student support resources and options for booking an appointment.",
+    "source": "https://www.uottawa.ca/campus-life/health-wellness",
+    "source_fr": "https://www.uottawa.ca/vie-campus/sante-mieux-etre"
+  },
+  {
+    "id": "housing",
+    "aliases": [
+      "residence",
+      "residences",
+      "logement",
+      "appartement",
+      "housing",
+      "residence life",
+      "dorm",
+      "dorms",
+      "rent"
+    ],
+    "fr": "Si tu cherches un logement, commence par comparer les résidences et les options hors campus sur la page Logement et vie en résidence. Elle te dirige aussi vers la démarche de demande.",
+    "en": "If you’re looking for a place to live, start by comparing residences and off-campus housing options on the Housing and Residence Life page. It also points you to the application process.",
+    "source": "https://www.uottawa.ca/campus-life/housing",
+    "source_fr": "https://www.uottawa.ca/vie-campus/logement"
+  },
+  {
+    "id": "tutoring",
+    "aliases": [
+      "tutorat",
+      "tuteur",
+      "mentorat",
+      "aide aux etudes",
+      "aide avec mes cours",
+      "tutoring",
+      "tutor",
+      "mentoring",
+      "academic support",
+      "struggling with my classes"
+    ],
+    "fr": "Regarde d’abord les services de ta faculté. La page de soutien par faculté te permet de trouver les ressources d’accompagnement et de mentorat qui correspondent à ton programme.",
+    "en": "Start with your own faculty. The faculty support page helps you find mentoring and academic resources for your program.",
+    "source": "https://www.uottawa.ca/study/academic-support-mentoring/faculty",
+    "source_fr": "https://www.uottawa.ca/etudes/soutien-academique-mentorat/facultes"
+  },
+  {
+    "id": "career",
+    "aliases": [
+      "emploi",
+      "emplois",
+      "job",
+      "jobs",
+      "career",
+      "carriere",
+      "cv",
+      "coop",
+      "co op",
+      "stage",
+      "internship",
+      "lettre de motivation",
+      "resume"
+    ],
+    "fr": "La page Carrière et apprentissage expérientiel est un bon point de départ pour préparer ton CV, chercher un emploi ou découvrir les options d’expérience professionnelle.",
+    "en": "Career and Experiential Learning is a good starting point for preparing a résumé, looking for a job or exploring work experience options.",
+    "source": "https://www.uottawa.ca/study/career-experiential-learning",
+    "source_fr": "https://www.uottawa.ca/etudes/carriere-apprentissage-experientiel"
+  },
+  {
+    "id": "recreation",
+    "aliases": [
+      "gym",
+      "entrainement",
+      "piscine",
+      "sports intramuros",
+      "intramural",
+      "fitness",
+      "recreation",
+      "swimming"
+    ],
+    "fr": "Pour le gym, la piscine ou les activités sportives, regarde la page Loisirs. Tu y trouveras les installations et les activités avant de choisir ce qui te convient.",
+    "en": "For the gym, pool or recreational sports, start with the Recreation page. It lists facilities and activities so you can find a good fit.",
+    "source": "https://www.uottawa.ca/campus-life/recreation",
+    "source_fr": "https://www.uottawa.ca/vie-campus/activites-recreatives"
+  },
+  {
+    "id": "enrolment",
+    "aliases": [
+      "inscrire a un cours",
+      "inscrire a mes cours",
+      "inscription aux cours",
+      "choisir mes cours",
+      "choix de cours",
+      "ajouter un cours",
+      "retirer un cours",
+      "abandonner un cours",
+      "course enrolment",
+      "course enrollment",
+      "enrol in courses",
+      "enroll in courses",
+      "register for classes",
+      "drop a course"
+    ],
+    "fr": "Pour ajouter ou retirer un cours, consulte d’abord les étapes d’inscription aux cours pour ton profil. La page te renvoie aussi vers uoZone et les dates officielles.",
+    "en": "Start with the course enrolment instructions for your student profile before adding or dropping a course. The official page also points you to uoZone and key dates.",
+    "source": "https://www.uottawa.ca/study/course-enrolment",
+    "source_fr": "https://www.uottawa.ca/etudes/inscription-cours"
+  },
+  {
+    "id": "access",
+    "aliases": [
+      "accommodement",
+      "accommodements",
+      "mesures d adaptation",
+      "handicap",
+      "accessibilite",
+      "accessible",
+      "academic accommodations",
+      "accommodations",
+      "disability",
+      "accessibility"
+    ],
+    "fr": "Si tu as besoin de mesures d’adaptation pour tes cours ou tes examens, commence par les services d’accommodements scolaires. Tu y verras les types de soutien et la démarche pour demander de l’aide.",
+    "en": "If you need adjustments for classes or exams, start with Academic Accommodations. The official page explains available supports and where to begin.",
+    "source": "https://www.uottawa.ca/study/academic-support-mentoring/accommodation-services-available",
+    "source_fr": "https://www.uottawa.ca/etudes/soutien-academique-mentorat/accommodements-scolaire-services"
   }
 ]
