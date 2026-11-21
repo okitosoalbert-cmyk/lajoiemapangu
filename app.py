@@ -29,7 +29,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r6"
+BUILD = "2026.11.21-r7"
 SPEECH_MODEL = "gemini-3.8-flash-tts"
 LANGUAGES = {item["locale"]: item["name"] for item in json.loads((ROOT / "static" / "languages.json").read_text(encoding="utf-8"))}
 INSTANCE = secrets.token_hex(6)
@@ -150,8 +150,8 @@ def normalize(text):
 
 def language(text, default):
     words = set(normalize(text).split())
-    fr = words & set("ou trouve est je peux comment adresse chercher quels quelle les des une pour bonjour salut aide manger horaires bibliotheque merci loin depuis oui exactement carte etudiante".split())
-    en = words & set("where is what how i can the to find near hours library hello get food address are thanks thank far list building buildings hi help from yes exactly card student".split())
+    fr = words & set("ou trouve est je peux comment histoire quand defaites victoires fondee adresse chercher quels quelle les des une pour bonjour salut aide manger horaires bibliotheque merci loin depuis oui exactement carte etudiante".split())
+    en = words & set("where is what how when history losses victories founded i can the to find near hours library hello get food address are thanks thank far list building buildings hi help from yes exactly card student".split())
     return "fr" if len(fr) > len(en) else "en" if len(en) > len(fr) else default
 
 
@@ -161,7 +161,7 @@ def facts():
 
 
 def format_fact(fact, lang):
-    result = {"id": fact["id"], "text": fact[lang], "source": fact.get("source_fr", fact["source"]) if lang == "fr" else fact["source"], "verified": VERIFIED}
+    result = {"id": fact["id"], "text": fact[lang], "source": fact.get("source_fr", fact["source"]) if lang == "fr" else fact["source"], "verified": fact.get("verified", VERIFIED)}
     if fact["id"] in PLACES:
         result["map"] = MAP[lang]
     if fact.get("address"):
@@ -419,7 +419,7 @@ def answer_multilingual(question, data, locale):
         outcome = json.loads(generate_gemini(key, (
             f"You are the University of Ottawa kiosk language bridge for {name} ({locale}). "
             "For specific questions about University of Ottawa buildings, directions, services, documents, "
-            "student cards or a follow-up about the last campus place, use mode campus and translate "
+            "student cards, university history, Gee-Gees results or a follow-up about the last campus topic, use mode campus and translate "
             "the question into English. Keep place names, codes and intent. Otherwise use mode general "
             f"and answer naturally in {name} in one to three short sentences. Do not invent campus facts. "
             + (f"The last campus topic was {known_previous}. " if known_previous else "")
@@ -484,6 +484,68 @@ def natural_speech():
         return jsonify(error="speech_unavailable"), 502
 
 
+def history_answer(text, lang, catalog, matches, previous):
+    records = [catalog[key] for key in matches if catalog[key].get("history")]
+    earlier = catalog.get(previous, {})
+    university = bool(re.search(r"\b(uottawa|universite|university|college bytown|college of bytown)\b", text))
+    sports = bool(re.search(r"\b(gee gees|geegees|carleton|match panda|panda game|coupe vanier|vanier cup)\b", text))
+    history_context = university or sports or bool(earlier.get("history"))
+    years = {int(year) for year in re.findall(r"\b(?:18|19|20)\d{2}\b", text)}
+    if (sports or any(record.get("history_group") in {"panda", "rugby", "soccer", "vanier"} for record in records)) and not years and re.search(
+        r"\b(prochain(?:e)?|upcoming|next game|next match|today|aujourd hui|billets?|tickets?)\b", text
+    ):
+        return {
+            "text": ("Le calendrier et la billetterie des Gee-Gees se trouvent sur le site officiel des équipes."
+                     if lang == "fr" else "The official Gee-Gees site has the team schedules and ticket information."),
+            "source": "https://www.geegees.ca/",
+            "source_title": "Site officiel des Gee-Gees" if lang == "fr" else "Official Gee-Gees website",
+        }
+    if history_context:
+        if not records and re.search(r"\b(fond\w*|founded|established|a ouvert|a ete ouverte?|a ete creee?|did it open|did the university open)\b", text):
+            records = [catalog["history-foundation"]]
+        if not records and re.search(r"\b(revers|defaites?|perdu|losses|defeats?|setbacks?)\b", text):
+            records = [catalog["history-revers"]]
+        if not records and re.search(r"\b(victoires?|palmares|wins|championships|titles)\b", text):
+            records = [catalog["history-sports"]]
+        if not records and re.search(r"\b(histoire|history|historique|origines)\b", text):
+            records = [catalog["history-overview"]]
+    if not records and re.fullmatch(r" (histoire|history|palmares sportif) ", text):
+        records = [catalog["history-overview"]]
+    group = next((record.get("history_group") for record in records if record.get("history_group")), None)
+    if years and not group:
+        group = earlier.get("history_group") if not records else None
+        if group is None and (university or earlier.get("id") == "history-overview"):
+            group = "university"
+    if not records and len(years) == 1 and earlier.get("id") == "history-sports":
+        topic = {1975: "vanier", 2000: "vanier", 2017: "rugby", 2026: "soccer"}.get(next(iter(years)))
+        if topic:
+            records = [catalog["history-" + topic]]
+    if group == "panda" and len(years) == 1:
+        event = catalog["history-panda"]
+        year = str(next(iter(years)))
+        specific = event.get("year_results", {}).get(year)
+        if specific:
+            return dict(format_fact(event, lang), text=specific[lang], source_title=event["source_label"][lang])
+    if years and group:
+        exact = [record for record in catalog.values() if record.get("history_group") == group
+                 and years <= set(record.get("history_years", []))]
+        if exact:
+            records = [next((record for record in records if record in exact), exact[0])]
+        elif group != "university":
+            reference = records[0] if records else earlier
+            result = format_fact(reference, lang)
+            result["text"] = ("Je n’ai pas de résultat vérifié pour cette année. La source ci-dessous couvre les résultats historiques que je peux confirmer."
+                              if lang == "fr" else "I don’t have a verified result for that year. The source below covers the historical results I can confirm.")
+            return result
+    if not records:
+        return None
+    record = records[0]
+    result = format_fact(record, lang)
+    result["source_title"] = record["source_label"][lang]
+    result["related"] = record.get("history_links", {}).get(lang, [])
+    return result
+
+
 def answer_question(question, data, *, use_gemini=True):
     lang = language(question, preferred(data))
     arithmetic = re.fullmatch(
@@ -510,6 +572,9 @@ def answer_question(question, data, *, use_gemini=True):
                        else "You’re welcome! Are you looking for another place or service?")
     mentions = find_mentions(text, catalog)
     matches = dict.fromkeys(key for _, _, key in mentions)
+    historical = history_answer(text, lang, catalog, matches, previous)
+    if historical:
+        return jsonify(lang=lang, **historical)
     if "student-card" in matches or (not matches and previous == "student-card" and re.search(
         r"\b(carte|la recuperer|la remplacer|l obtenir|la retirer|ou je vais|c est ou|pick it up|replace it|is it ready|where do i go)\b", text
     )):
