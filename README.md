@@ -84,3 +84,7 @@ La borne couvre aussi les bourses, le logement, la santé et le mieux-être, le 
 ## Répertoire des bâtiments
 
 INNOVA reconnaît 64 entrées liées aux bâtiments, dont toutes les entrées du répertoire officiel consulté, les résidences et les adresses détaillées par les fiches groupées. Parmi elles, 60 destinations ont un repère intégré à partir des données OpenStreetMap. Les deux fiches de groupe et les adresses 178 Laurier et 155 Séraphin-Marion donnent accès à la fiche officielle. Les bâtiments hors du campus principal s’affichent dans leur propre secteur. Demandez « Liste des bâtiments » pour accéder au répertoire officiel.
+
+### Orientation entre deux lieux
+
+Demandez « Comment aller de Tabaret à SITE ? » ou, après une destination, « Et si je pars de Tabaret ? ». INNOVA indique la direction et la distance à vol d’oiseau entre les deux repères. Le lien d’itinéraire ouvre une recherche de trajet à pied avec le départ et la destination déjà renseignés. La carte affiche les deux repères lorsqu’ils sont dans le même secteur. En cas de faute dans le nom d’un bâtiment, INNOVA propose une confirmation. Une suggestion unique peut être confirmée en disant « Oui ».
