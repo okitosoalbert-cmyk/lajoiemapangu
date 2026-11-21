@@ -472,14 +472,26 @@
       "pavillon fauteuil",
       "pavillon faute",
       "pavillon foteu",
-      "fauteuil hall"
+      "fauteuil hall",
+      "fac de droit",
+      "pavillon de droit",
+      "law building",
+      "law faculty"
     ],
     "building": true,
     "fr": "Pavillon Fauteux se trouve au 57 Louis Pasteur Private, Ottawa, ON K1N 6N5.",
     "en": "Fauteux Hall is at 57 Louis Pasteur Private, Ottawa, ON K1N 6N5.",
     "source": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps/fauteux-hall",
     "source_fr": "https://www.uottawa.ca/notre-universite/administration-services/immeubles/cartes-campus/batiments/pavillon-fauteux",
-    "address": "57 Louis Pasteur Private, Ottawa, ON K1N 6N5"
+    "address": "57 Louis Pasteur Private, Ottawa, ON K1N 6N5",
+    "wayfinding": {
+      "fr": "Fauteux, c’est le pavillon de la Faculté de droit. Sur la carte, il est à environ 200 mètres au nord du CRX, à vol d’oiseau. Du côté de la rue Copernicus, repère la rampe juste à côté des marches en béton.",
+      "en": "Fauteux is the Faculty of Law building. On the map, it’s about 200 metres north of CRX as the crow flies. On the Copernicus Street side, look for the ramp next to the concrete steps."
+    },
+    "entrance": {
+      "fr": "Il y a deux accès avec rampe à Fauteux : l’un à côté des marches en béton, du côté de la rue Copernicus, et l’autre derrière la résidence Leblanc, au nord du pavillon. La fiche officielle montre aussi les accès intérieurs.",
+      "en": "Fauteux has two ramp entrances: one by the concrete steps off Copernicus Street and another behind Leblanc Residence, on the north side. The official building page also lists indoor connections."
+    }
   },
   {
     "id": "hagen-hall",
