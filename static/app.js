@@ -55,7 +55,7 @@ let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
 let audioActive = false, echoUntil = 0, speechTimer;
-let speechLocale = "fr-CA", cloudPlayback;
+let speechLocale = "fr-CA", cloudPlayback, speechReveal;
 try {
   speechLocale = localStorage.getItem("innova-speech-locale") || speechLocale;
 } catch {}
@@ -251,9 +251,10 @@ function touch() {
   activity = setTimeout(() => enterStandby(), 120000);
 }
 
-function bubble(text, user = false, spoken = null) {
+function bubble(text, user = false, spoken = null, hidden = false) {
   const article = document.createElement("div");
   article.className = user ? "bubble user" : "bubble";
+  article.hidden = hidden;
   const p = document.createElement("p");
   p.textContent = text;
   p.dir = "auto";
@@ -283,8 +284,15 @@ function releaseCloudPlayback(job) {
   if (cloudPlayback === job) cloudPlayback = undefined;
 }
 
+function revealSpeechReply() {
+  const reveal = speechReveal;
+  speechReveal = undefined;
+  reveal?.();
+}
+
 function stopVoice() {
   clearTimeout(speechTimer);
+  revealSpeechReply();
   if (!utterance) return;
   echoUntil = performance.now() + 350;
   utterance = undefined;
@@ -292,14 +300,14 @@ function stopVoice() {
   else speech?.cancel();
 }
 
-async function say(text, replyLang, spoken) {
-  if (!sound) return;
+async function say(text, replyLang, spoken, reveal) {
   stopVoice();
+  speechReveal = reveal;
+  if (!sound) { revealSpeechReply(); return; }
   const target = spoken || (replyLang === "fr" ? "fr-CA" : "en-CA");
   const job = {controller: new AbortController()};
   cloudPlayback = utterance = job;
   status("speechStarting");
-  const limit = setTimeout(() => job.controller.abort(), 13000);
   const fallback = () => {
     if (utterance !== job) return;
     utterance = undefined;
@@ -307,6 +315,7 @@ async function say(text, replyLang, spoken) {
     listeningStatus();
     sayLocal(text, target);
   };
+  const limit = setTimeout(fallback, 13000);
   try {
     const response = await fetch("/api/speech", {
       method: "POST", headers: {"Content-Type":"application/json"},
@@ -321,12 +330,17 @@ async function say(text, replyLang, spoken) {
     job.audio.onplaying = () => {
       if (utterance !== job) return;
       status("speaking");
+      revealSpeechReply();
       animate(/speak|talk|parl|mouth/i);
+    };
+    job.audio.onwaiting = () => {
+      if (utterance === job) status("speechStarting");
     };
     job.audio.onended = () => {
       if (utterance !== job) return;
       utterance = undefined;
       releaseCloudPlayback(job);
+      revealSpeechReply();
       echoUntil = performance.now() + 350;
       listeningStatus();
       animate(/idle|repos/i);
@@ -342,7 +356,7 @@ async function say(text, replyLang, spoken) {
 }
 
 function sayLocal(text, locale) {
-  if (!sound || !speech) return;
+  if (!sound || !speech) { revealSpeechReply(); return; }
   const replyLang = locale.split("-")[0];
   const installed = (speech.getVoices?.() || []).filter(voice => voice.localService);
   const preferredVoice = installed.find(voice => voice.lang.toLowerCase() === locale.toLowerCase()) ||
@@ -357,7 +371,7 @@ function sayLocal(text, locale) {
     segment = segment ? segment + " " + word : word;
   }
   if (segment) segments.push(segment);
-  if (!segments.length) return;
+  if (!segments.length) { revealSpeechReply(); return; }
 
   function play(index) {
     const voice = new SpeechSynthesisUtterance(segments[index]);
@@ -367,9 +381,12 @@ function sayLocal(text, locale) {
     voice.volume = Number($("volume").value);
     voice.rate = 0.94;
     voice.onstart = () => {
-      if (utterance !== voice || state === "speaking") return;
-      status("speaking");
-      animate(/speak|talk|parl|mouth/i);
+      if (utterance !== voice) return;
+      if (state !== "speaking") {
+        status("speaking");
+        animate(/speak|talk|parl|mouth/i);
+      }
+      revealSpeechReply();
     };
     const next = () => {
       if (utterance !== voice) return;
@@ -379,6 +396,7 @@ function sayLocal(text, locale) {
         return;
       }
       utterance = undefined;
+      revealSpeechReply();
       echoUntil = performance.now() + 350;
       listeningStatus();
       animate(/idle|repos/i);
@@ -390,6 +408,7 @@ function sayLocal(text, locale) {
       if (utterance !== voice) return;
       utterance = undefined;
       speech.cancel();
+      revealSpeechReply();
       echoUntil = performance.now() + 350;
       listeningStatus();
       scheduleListening();
@@ -433,7 +452,7 @@ async function ask(text) {
     if (result.general) lastTopic = undefined;
     confirmation = result.option_queries && result.options?.length === 1 ? result.options[0] : undefined;
     const words = translations[result.lang];
-    const article = bubble(result.text, false, result.voice_locale || result.lang);
+    const article = bubble(result.text, false, result.voice_locale || result.lang, sound);
     const links = document.createElement("div");
     links.className = "links";
     if (result.source) link(links, result.source, result.source_title || words.source);
@@ -466,8 +485,12 @@ async function ask(text) {
       lastTopic = result.id;
       if (!items.includes(result.id)) items.push(result.id);
     }
-    mascot?.play("nod");
-    say(result.text, result.lang, result.voice_locale);
+    say(result.text, result.lang, result.voice_locale, () => {
+      if (!article.isConnected) return;
+      article.hidden = false;
+      mascot?.play("nod");
+      $("messages").scrollTop = $("messages").scrollHeight;
+    });
   } catch {
     if (pending === controller) $("notice").textContent = copy().failure;
   } finally {
@@ -487,6 +510,7 @@ function clearSession() {
   pending = undefined;
   controller?.abort();
   stopListening();
+  speechReveal = undefined;
   stopVoice();
   echoUntil = 0;
   $("send").disabled = false;
