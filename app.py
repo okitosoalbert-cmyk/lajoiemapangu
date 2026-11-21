@@ -17,6 +17,8 @@ from urllib.request import Request, urlopen
 import qrcode
 from flask import Flask, jsonify, render_template, request
 
+from official_site import lookup as lookup_uottawa
+
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.getenv("INNOVA_DB", ROOT / "innova.sqlite3"))
 app = Flask(__name__)
@@ -359,6 +361,9 @@ def ask():
         elif selected in PLACES and not re.search(r"\b(adresse|address)\b", text):
             result["text"] = orientation(selected, lang, catalog[selected])
         return jsonify(lang=lang, **result)
+    official = lookup_uottawa(question, lang)
+    if official:
+        return jsonify(lang=lang, **official)
     return jsonify(lang=lang, text="Je n’ai pas trouvé ce que tu cherches. Donne-moi le nom du pavillon ou dis-moi si tu cherches un service, un logement ou de l’aide pour tes cours." if lang == "fr" else "I couldn’t find what you’re looking for. Tell me the building name, or whether you need a student service, housing or help with classes.", source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en")
 
 
