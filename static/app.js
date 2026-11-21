@@ -55,10 +55,9 @@ let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0;
 let audioActive = false, echoUntil = 0, speechTimer;
-let speechLocale = "fr-CA", naturalVoice = false, cloudPlayback;
+let speechLocale = "fr-CA", cloudPlayback;
 try {
   speechLocale = localStorage.getItem("innova-speech-locale") || speechLocale;
-  naturalVoice = localStorage.getItem("innova-natural-voice") === "true";
 } catch {}
 const ABSENCE_MS = 5000;
 const SPEECH_PAUSE_MS = 1700;
@@ -81,21 +80,12 @@ const languageName = document.createElement("span");
 const languageSelect = document.createElement("select");
 languageSelect.id = "speechLocale";
 languageLabel.append(languageName, languageSelect);
-const naturalLabel = document.createElement("label");
-const naturalToggle = document.createElement("input");
-naturalToggle.type = "checkbox";
-naturalToggle.id = "naturalVoice";
-naturalToggle.checked = naturalVoice;
-const naturalName = document.createElement("span");
-naturalLabel.append(naturalToggle, naturalName);
-voiceSettings.append(languageLabel, naturalLabel);
+voiceSettings.append(languageLabel);
 $("messages").before(voiceSettings);
 $("question").dir = "auto";
 
 function speechOptions() {
   languageName.textContent = lang === "fr" ? "Langue parlée" : "Spoken language";
-  naturalName.textContent = lang === "fr" ? "Voix naturelle Gemini" : "Gemini natural voice";
-  naturalToggle.title = lang === "fr" ? "Envoie le texte des réponses à Gemini pour les lire." : "Send reply text to Gemini to read it aloud.";
 }
 
 function chooseSpeechLocale(value) {
@@ -113,10 +103,6 @@ languageSelect.onchange = () => {
   chooseSpeechLocale(languageSelect.value);
   if (speechLocale === "fr-CA") locale("fr");
   if (speechLocale === "en-CA") locale("en");
-};
-naturalToggle.onchange = () => {
-  naturalVoice = naturalToggle.checked;
-  try { localStorage.setItem("innova-natural-voice", String(naturalVoice)); } catch {}
 };
 fetch("/static/languages.json").then(response => response.json()).then(languages => {
   const display = new Intl.DisplayNames(["fr"], {type:"language"});
@@ -310,7 +296,6 @@ async function say(text, replyLang, spoken) {
   if (!sound) return;
   stopVoice();
   const target = spoken || (replyLang === "fr" ? "fr-CA" : "en-CA");
-  if (!naturalVoice) { sayLocal(text, target); return; }
   const job = {controller: new AbortController()};
   cloudPlayback = utterance = job;
   status("speechStarting");
