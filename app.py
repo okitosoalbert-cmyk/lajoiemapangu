@@ -10,7 +10,7 @@ import time
 import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
@@ -28,6 +28,7 @@ MAP = {
     "en": "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 }
 VERIFIED = "2026-11-20"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
 PLACES = json.loads((ROOT / "static" / "campus-map.json").read_text(encoding="utf-8"))["places"]
 DIRECTIONS = {
     "fr": ("nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"),
@@ -178,17 +179,52 @@ def gemini_key():
     return None
 
 
+class GeminiError(Exception):
+    pass
+
+
+def gemini_notice(reason, lang):
+    messages = {
+        "no_key": ("Aucune clé Gemini chargée. Ouvre Configurer-Gemini.bat.", "No Gemini key loaded. Open Configurer-Gemini.bat."),
+        "key": ("Google a refusé la clé ou son autorisation. Vérifie la clé dans Google AI Studio.", "Google rejected the key or its permissions. Check it in Google AI Studio."),
+        "quota": ("Le quota Gemini est atteint. Réessaie plus tard ou vérifie tes limites dans Google AI Studio.", "Gemini’s quota is exhausted. Try later or check your limits in Google AI Studio."),
+        "model": ("Ce modèle Gemini est inaccessible avec ta clé. Vérifie le modèle dans Google AI Studio.", "This Gemini model is unavailable with your key. Check the model in Google AI Studio."),
+        "network": ("INNOVA n’a pas pu joindre Gemini. Vérifie ta connexion Internet et réessaie.", "INNOVA could not reach Gemini. Check your connection and try again."),
+        "response": ("Gemini n’a pas renvoyé de réponse exploitable. Réessaie avec une question courte.", "Gemini did not return a usable answer. Try a short question."),
+    }
+    return messages[reason][lang == "en"]
+
+
+def gemini_http_error(error):
+    if error.code == 429:
+        return "quota"
+    if error.code in (401, 403):
+        return "key"
+    if error.code == 404:
+        return "model"
+    if error.code == 400:
+        try:
+            details = json.load(error)["error"].get("details", [])
+            if any(isinstance(item, dict) and item.get("reason") in {"API_KEY_INVALID", "API_KEY_EXPIRED"}
+                   for item in details):
+                return "key"
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            pass
+    return "network" if error.code >= 500 else "response"
+
+
 def answer_with_gemini(question, catalog, lang, topic, previous, *, allow_general=False, exchange=None):
     key = gemini_key()
     if not key:
         return None
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
     glossary = {}
-    for code, fact in catalog.items():
+    relevant = {} if allow_general else {topic: catalog[topic]} if topic else catalog
+    for code, fact in relevant.items():
         guidance = orientation(code, lang, fact) if code in PLACES else fact[lang]
         glossary[code] = {"aliases": fact["aliases"], "verified_guidance": guidance}
-    choices = [*catalog, "NONE"]
+    choices = [*relevant, "NONE"]
     contents = []
     if allow_general:
         choices.append("GENERAL")
@@ -222,7 +258,6 @@ def answer_with_gemini(question, catalog, lang, topic, previous, *, allow_genera
         "contents": contents,
         "generationConfig": {
             "maxOutputTokens": 320,
-            "thinkingConfig": {"thinkingBudget": 0},
             "responseMimeType": "application/json",
             "responseSchema": {
                 "type": "OBJECT",
@@ -237,18 +272,24 @@ def answer_with_gemini(question, catalog, lang, topic, previous, *, allow_genera
     req = Request(f"https://generativelanguage.googleapis.com/v1beta/models/{quote(model, safe='')}:generateContent",
                   json.dumps(payload).encode(), {"Content-Type": "application/json", "x-goog-api-key": key})
     try:
-        with urlopen(req, timeout=5) as response:
+        with urlopen(req, timeout=7) as response:
             result = json.load(response)
         draft = json.loads(result["candidates"][0]["content"]["parts"][0]["text"])
         picked, answer = draft["topic"], draft["answer"].strip()
         if picked == "GENERAL" and allow_general and topic is None and 0 < len(answer) <= 640 and not re.search(r"https?://", answer):
             return picked, answer
-        known_topic = picked in catalog and (topic is None or picked == topic)
+        known_topic = picked in relevant
         if known_topic and 0 < len(answer) <= 400 and not re.search(r"https?://|\d", answer):
             return picked, answer
-    except (OSError, URLError, ValueError, KeyError, IndexError, TypeError, AttributeError):
-        pass
-    return None
+        if picked == "NONE":
+            return None
+        raise GeminiError("response")
+    except HTTPError as error:
+        raise GeminiError(gemini_http_error(error)) from None
+    except (OSError, URLError):
+        raise GeminiError("network") from None
+    except (ValueError, KeyError, IndexError, TypeError, AttributeError):
+        raise GeminiError("response") from None
 
 
 def student_card_answer(text, lang, catalog):
@@ -392,10 +433,17 @@ def ask():
     if len(matches) > 1:
         return jsonify(lang=lang, text="De quel lieu ou service voulez-vous parler ?" if lang == "fr" else "Which place or service do you mean?", options=list(matches),
                        option_labels={key: catalog[key]["aliases"][0] if key not in PLACES else PLACES[key]["code"] for key in matches})
-    natural = answer_with_gemini(
-        question, catalog, lang, selected, previous,
-        allow_general=not campus_inquiry, exchange=data.get("exchange"),
-    )
+    gemini_status = None
+    try:
+        natural = answer_with_gemini(
+            question, catalog, lang, selected, previous,
+            allow_general=not campus_inquiry, exchange=data.get("exchange"),
+        )
+    except GeminiError as error:
+        natural = None
+        gemini_status = str(error)
+    if not campus_inquiry and natural is None and not gemini_key():
+        gemini_status = "no_key"
     if natural:
         selected, answer = natural
         if selected == "GENERAL":
@@ -420,10 +468,12 @@ def ask():
             result["text"] = answer
         elif selected in PLACES and not re.search(r"\b(adresse|address)\b", text):
             result["text"] = orientation(selected, lang, catalog[selected])
-        return jsonify(lang=lang, **result)
+        return jsonify(lang=lang, **result, gemini_notice=gemini_notice(gemini_status, lang) if gemini_status else None)
     official = lookup_uottawa(question, lang)
     if official:
-        return jsonify(lang=lang, **official)
+        return jsonify(lang=lang, **official, gemini_notice=gemini_notice(gemini_status, lang) if gemini_status else None)
+    if not campus_inquiry and gemini_status:
+        return jsonify(lang=lang, text=gemini_notice(gemini_status, lang))
     return jsonify(lang=lang, text="Je n’ai pas trouvé ce que tu cherches. Donne-moi le nom du pavillon ou dis-moi si tu cherches un service, un logement ou de l’aide pour tes cours." if lang == "fr" else "I couldn’t find what you’re looking for. Tell me the building name, or whether you need a student service, housing or help with classes.", source="https://www.uottawa.ca/fr" if lang == "fr" else "https://www.uottawa.ca/en")
 
 
@@ -479,7 +529,23 @@ if __name__ == "__main__":
                 return
             super().log_request(code, size)
 
-    print("Gemini configured." if gemini_key() else "INNOVA local mode.", flush=True)
+    if "--check-gemini" in sys.argv:
+        model = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
+        print(f"Modele teste : {model}", flush=True)
+        try:
+            if not gemini_key():
+                raise GeminiError("no_key")
+            result = answer_with_gemini("Combien font douze fois huit ?",
+                                        facts(), "fr", None, None, allow_general=True)
+            if not result or result[0] != "GENERAL" or not re.search(r"\b96\b|quatre.vingt.seize", result[1], re.I):
+                raise GeminiError("response")
+        except GeminiError as error:
+            print(gemini_notice(str(error), "fr"), flush=True)
+            sys.exit(1)
+        print("Gemini repond correctement : douze fois huit = 96.", flush=True)
+        sys.exit(0)
+
+    print("Cle Gemini chargee. Connexion a verifier." if gemini_key() else "INNOVA local mode.", flush=True)
     host = os.getenv("INNOVA_HOST", "127.0.0.1")
     port = int(os.getenv("INNOVA_PORT", "5100"))
 
