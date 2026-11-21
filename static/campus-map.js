@@ -33,7 +33,12 @@ export async function showCampusMap(container, destination, lang) {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw Error("Canvas unavailable");
-    const origin = data.places.crx.point;
+    const region = target.region || "campus";
+    const mainCampus = region === "campus" || region === "north";
+    const origin = mainCampus ? data.places.crx.point : target.point;
+    if (!mainCampus) {
+      caption.firstChild.textContent = (lang === "fr" ? "Vue du secteur" : "Area view") + " · ";
+    }
     const routeCenter = origin.map((value, i) => (value + target.point[i]) / 2);
     const separation = Math.hypot(target.point[0] - origin[0], target.point[1] - origin[1]);
     const focusZoom = Math.min(1, 240 / Math.max(1, separation));
@@ -98,7 +103,7 @@ export async function showCampusMap(container, destination, lang) {
         ctx.textAlign = "center";
         ctx.fillText(title,x,y-9);
       }
-      if (destination !== "crx") marker(origin, "CRX", "#245c5b");
+      if (mainCampus && destination !== "crx") marker(origin, "CRX", "#245c5b");
       marker(target.point, target.code, "#721538");
 
       const [nx, ny] = [width-24, 30];
@@ -125,7 +130,7 @@ export async function showCampusMap(container, destination, lang) {
     addButton("↷", labels.right, () => { angle += .28; });
     addButton("+", labels.closer, () => { zoom = Math.min(zoom * 1.3, 2.5); });
     addButton("−", labels.farther, () => { zoom = Math.max(zoom / 1.3, .35); });
-    addButton(labels.reset, labels.reset, () => { center = data.center; zoom = .38; });
+    addButton(labels.reset, labels.reset, () => { center = data.regions?.[region] || data.center; zoom = .38; });
     addButton(labels.focus, labels.focus, () => { center = routeCenter; zoom = focusZoom; });
     render();
     const observer = new ResizeObserver(() => {
