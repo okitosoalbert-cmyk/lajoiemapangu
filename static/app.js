@@ -52,8 +52,8 @@ const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisse
 let lang = "fr", sound = false, state = "ready", items = [], activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
-let cameraBackground;
-try { automatic = localStorage.getItem("innova-auto") === "true"; } catch {}
+let cameraBackground, microphoneSetup = 0;
+try { automatic = localStorage.getItem("innova-auto-v2") === "true"; } catch {}
 if (automatic) sound = true;
 const copy = () => translations[lang];
 
@@ -325,6 +325,7 @@ function stopCamera() {
 }
 
 function wake() {
+  if ($("start").disabled) return;
   stopCamera();
   $("idle").close();
   if (automatic) {
@@ -442,16 +443,56 @@ $("keys").onclick = () => {
   keyboard.hidden = !keyboard.hidden;
   $("keys").setAttribute("aria-expanded", String(!keyboard.hidden));
 };
+function showMicrophoneError(reason, target = $("notice")) {
+  const denied = ["not-allowed", "service-not-allowed", "NotAllowedError", "SecurityError"].includes(reason);
+  const missing = ["NotFoundError", "NotReadableError", "audio-capture"].includes(reason);
+  const messages = lang === "fr" ? {
+    denied: "Micro bloqué. Dans Chrome, ouvre les paramètres du site à gauche de l’adresse et règle Microphone sur Autoriser.",
+    missing: "Chrome ne peut pas ouvrir le micro. Vérifie le périphérique d’entrée dans Paramètres Windows → Système → Son.",
+    network: "Le service de dictée de Chrome est inaccessible. Vérifie ta connexion Internet.",
+    timeout: "Chrome n’a pas démarré la capture du micro. Vérifie le micro sélectionné dans les paramètres de Chrome.",
+  } : {
+    denied: "Microphone blocked. In Chrome site settings, set Microphone to Allow.",
+    missing: "Chrome could not open a microphone. Check the input device in Windows Settings → System → Sound.",
+    network: "Chrome’s speech recognition service is unavailable. Check your internet connection.",
+    timeout: "Chrome did not start audio capture. Check the selected microphone in Chrome settings.",
+  };
+  target.textContent = (denied ? messages.denied : missing ? messages.missing : messages[reason]) || copy().micFailure;
+}
+
+async function prepareMicrophone() {
+  const id = ++microphoneSetup;
+  $("camera").disabled = true;
+  $("start").disabled = true;
+  $("cameraStatus").textContent = lang === "fr" ? "Autorise le micro dans Chrome…" : "Allow microphone access in Chrome…";
+  try {
+    const input = await navigator.mediaDevices.getUserMedia({
+      audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}, video: false,
+    });
+    input.getTracks().forEach(track => track.stop());
+    if (id !== microphoneSetup) return;
+    try { localStorage.setItem("innova-auto-v2", "true"); } catch {}
+  } catch (error) {
+    if (id !== microphoneSetup) return;
+    automatic = false;
+    updateAutomatic();
+    showMicrophoneError(error.name, $("cameraStatus"));
+    return;
+  } finally {
+    if (id === microphoneSetup) {
+      $("camera").disabled = false;
+      $("start").disabled = false;
+    }
+  }
+  if ($("idle").open && !document.hidden) camera();
+  else scheduleListening();
+}
+
 function startListening(auto = false) {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const fail = (reason) => {
     if (auto) voiceBlocked = true;
-    const denied = ["not-allowed", "service-not-allowed"].includes(reason);
-    const details = {
-      fr: {denied: "Micro bloqué. Autorisez-le dans les paramètres du site dans Chrome, puis rechargez la borne.", network: "Le service de dictée de Chrome est inaccessible. Vérifiez Internet. La saisie texte reste disponible."},
-      en: {denied: "Microphone blocked. Allow it in Chrome’s site settings, then reload the kiosk.", network: "Chrome’s speech service is unavailable. Check your connection or type your question."},
-    };
-    $("notice").textContent = denied ? details[lang].denied : reason === "network" ? details[lang].network : copy().micFailure;
+    showMicrophoneError(reason);
   };
   if (!Recognition) { fail(); return; }
   if (recognition || utterance || pending) return;
@@ -460,10 +501,21 @@ function startListening(auto = false) {
   active.lang = lang === "fr" ? "fr-CA" : "en-CA";
   active.interimResults = false;
   active.continuous = false;
-  active.onstart = () => {
-    if (recognition === active) status("listening");
+  const startup = setTimeout(() => {
+    if (recognition !== active) return;
+    stopListening();
+    status("ready");
+    fail("timeout");
+  }, 8000);
+  active.onaudiostart = () => {
+    clearTimeout(startup);
+    if (recognition === active) {
+      $("notice").textContent = "";
+      status("listening");
+    }
   };
   active.onresult = (event) => {
+    clearTimeout(startup);
     if (recognition !== active) return;
     const text = event.results[event.resultIndex || 0][0].transcript.trim().slice(0, 500);
     if (!text) return;
@@ -476,15 +528,17 @@ function startListening(auto = false) {
     }
   };
   active.onerror = (event) => {
+    clearTimeout(startup);
     if (recognition === active && !["aborted", "no-speech"].includes(event.error)) fail(event.error);
   };
   active.onend = () => {
+    clearTimeout(startup);
     if (recognition !== active) return;
     recognition = undefined;
     if (state === "listening") status("ready");
     if (auto) scheduleListening(900);
   };
-  try { active.start(); } catch { recognition = undefined; fail(); }
+  try { active.start(); } catch { clearTimeout(startup); recognition = undefined; fail(); }
 }
 
 $("mic").onclick = () => {
@@ -513,12 +567,13 @@ $("camera").onclick = () => {
   voiceBlocked = false;
   waitForDeparture = false;
   cameraBackground = undefined;
-  try { localStorage.setItem("innova-auto", String(automatic)); } catch {}
   updateAutomatic();
   if (automatic) {
     setSound(true);
-    camera();
+    prepareMicrophone();
   } else {
+    microphoneSetup++;
+    try { localStorage.removeItem("innova-auto-v2"); } catch {}
     stopCamera();
     stopListening();
     $("cameraStatus").textContent = "";
