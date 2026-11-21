@@ -433,7 +433,7 @@ async function ask(text) {
   pending = controller;
   $("send").disabled = true;
   status("working");
-  const timeout = setTimeout(() => controller.abort(), speechLocale === "fr-CA" || speechLocale === "en-CA" ? 12500 : 21500);
+  const timeout = setTimeout(() => controller.abort(), speechLocale === "fr-CA" || speechLocale === "en-CA" ? 18000 : 23500);
   try {
     const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, lang, previous: lastTopic, confirmation, exchange: generalExchange, speech_locale: speechLocale}), signal: controller.signal});
     if (expectedInstance && response.headers.get("X-INNOVA-Instance") !== expectedInstance) {
@@ -449,10 +449,26 @@ async function ask(text) {
     if (pending !== controller) return;
     if (result.gemini_notice) $("notice").textContent = result.gemini_notice;
     generalExchange = result.general ? {question: text, answer: result.text} : undefined;
-    if (result.general) lastTopic = undefined;
+    if (result.general || lastTopic?.startsWith("course:")) lastTopic = undefined;
+    if (result.course_context) lastTopic = result.course_context;
     confirmation = result.option_queries && result.options?.length === 1 ? result.options[0] : undefined;
     const words = translations[result.lang];
     const article = bubble(result.text, false, result.voice_locale || result.lang, sound);
+    if (result.courses?.length) {
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = result.lang === "fr" ? "Voir les sections et leurs horaires" : "View sections and meeting times";
+      const list = document.createElement("ul");
+      for (const row of result.courses) {
+        const item = document.createElement("li");
+        const staff = row.names.join(", ") || (result.lang === "fr" ? "Enseignant à confirmer" : "Instructor to be confirmed");
+        item.textContent = [row.term, row.code + " " + row.title, row.section, staff, row.hours].filter(Boolean).join(" · ");
+        list.append(item);
+      }
+      details.className = "course-sections";
+      details.append(summary, list);
+      article.append(details);
+    }
     const links = document.createElement("div");
     links.className = "links";
     if (result.source) link(links, result.source, result.source_title || words.source);

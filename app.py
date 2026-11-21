@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 import qrcode
 from flask import Flask, Response, jsonify, render_template, request
 
+from course_schedule import course_request, lookup_course
 from official_site import lookup as lookup_uottawa
 
 ROOT = Path(__file__).resolve().parent
@@ -29,7 +30,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r8"
+BUILD = "2026.11.21-r9"
 SPEECH_MODEL = "gemini-3.8-flash-tts"
 LANGUAGES = {item["locale"]: item["name"] for item in json.loads((ROOT / "static" / "languages.json").read_text(encoding="utf-8"))}
 INSTANCE = secrets.token_hex(6)
@@ -564,6 +565,9 @@ def answer_question(question, data, *, use_gemini=True):
             operator, total = "−", a - b
         return jsonify(lang=lang, text=f"{a} {operator} {b} = {total}.", general=True)
     text = f" {normalize(question)} "
+    schedule = course_request(question, data.get("previous"))
+    if schedule:
+        return jsonify(lookup_course(schedule, lang))
     catalog = facts()
     previous = data.get("previous")
     previous = previous if isinstance(previous, str) and previous in catalog else None

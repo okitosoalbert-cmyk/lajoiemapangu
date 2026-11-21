@@ -118,3 +118,9 @@ Lorsque le son est activé, INNOVA utilise automatiquement la voix Gemini. Le te
 Seize fiches historiques bilingues sont accessibles hors ligne. Essaie « Quand l’Université d’Ottawa a-t-elle été fondée ? », « Que s’est-il passé en 1903 ? » après une question d’histoire, « Quand les Gee-Gees ont-ils gagné la Coupe Vanier ? », ou « Qui a gagné le Match Panda en 2014 ? ». Les fiches indiquent leur source et les résultats sportifs sont limités aux éditions documentées.
 
 Quand le son est actif, la réponse s’affiche dès que la lecture commence, avec l’animation de la bouche de Gee-Gee. En mode silencieux ou si la lecture échoue, le texte s’affiche seul.
+
+## Horaires des cours et orientation piétonne
+
+Une question comme « Qui donne GNG1503 à l’automne 2026 ? » ou « Quels cours donne Emmanuel Bouendeu ? » interroge directement l’horaire public de l’Université d’Ottawa. Les résultats sont présentés par trimestre et par section, selon les affectations publiées. Si le service n’a pas publié le trimestre ou le nom du professeur, INNOVA l’indique et fournit le lien officiel. Cette recherche requiert une connexion Internet et fonctionne sans clé Gemini.
+
+Pour préparer un déplacement, demande « Comment aller de CRX à Fauteux ? ». La carte permet de choisir le repère de départ, de passer de la vue du dessus à la vue inclinée et d’agrandir la carte. Les chemins piétons et les distances approximatives reposent sur des données OpenStreetMap. Les trajets sont extérieurs, peuvent comprendre des escaliers et se terminent près des pavillons. Pour les entrées accessibles, consulte la carte officielle.
