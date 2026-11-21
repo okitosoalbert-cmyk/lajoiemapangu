@@ -52,17 +52,11 @@ const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisse
 let lang = "fr", sound = false, state = "ready", items = [], lastTopic, confirmation, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
-let cameraBackground, warmMicrophone, microphoneSetup = 0;
-let audioInput, contextualHints = true;
+let cameraBackground, microphoneSetup = 0;
 const microphone = {
   audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true},
   video: false,
 };
-const campusPhrases = [
-  "Université d’Ottawa", "University of Ottawa", "bibliothèque Morisset", "Morisset Library", "carte étudiante", "student card",
-  "pavillon SITE", "SITE building", "complexe STEM", "Carrefour des apprentissages",
-  "Learning Crossroads", "centre universitaire Jock-Turcot", "pavillon Fauteux", "Fauteux Hall", "FTX", "CRX", "UCU", "MRT",
-];
 try { automatic = localStorage.getItem("innova-auto-v2") === "true"; } catch {}
 if (automatic) sound = true;
 const copy = () => translations[lang];
@@ -78,17 +72,11 @@ function updateAutomatic() {
   button.setAttribute("aria-pressed", String(automatic));
 }
 
-function releaseAudio() {
-  audioInput?.getTracks().forEach(track => track.stop());
-  audioInput = undefined;
-}
-
 function stopListening() {
   clearTimeout(listenTimer);
   const active = recognition;
   recognition = undefined;
   active?.abort();
-  releaseAudio();
   speechPreview.textContent = "";
 }
 
@@ -351,29 +339,7 @@ async function finish() {
   }
 }
 
-function prepareApproachAudio() {
-  if (warmMicrophone || !(window.SpeechRecognition || window.webkitSpeechRecognition)) return;
-  let input, cancelled = false;
-  warmMicrophone = {
-    result: navigator.mediaDevices.getUserMedia(microphone).then(stream => {
-      input = stream;
-      if (cancelled) stream.getTracks().forEach(track => track.stop());
-      return {input: stream};
-    }, error => ({error})),
-    cancel() {
-      cancelled = true;
-      input?.getTracks().forEach(track => track.stop());
-    },
-  };
-}
-
-function cancelApproachAudio() {
-  warmMicrophone?.cancel();
-  warmMicrophone = undefined;
-}
-
 function stopCamera() {
-  cancelApproachAudio();
   cameraCycle++;
   stream?.getTracks().forEach((track) => track.stop());
   stream = undefined;
@@ -383,8 +349,6 @@ function stopCamera() {
 
 function wake() {
   if ($("start").disabled || !$("idle").open) return;
-  const prepared = automatic ? warmMicrophone : undefined;
-  if (prepared) warmMicrophone = undefined;
   stopCamera();
   $("idle").close();
   if (automatic) {
@@ -396,7 +360,7 @@ function wake() {
   touch();
   $("question").focus();
   animate(/wave|greet|salut/i);
-  if (automatic) startListening(true, prepared);
+  if (automatic) startListening(true);
   else say(copy().heading, lang);
 }
 
@@ -433,7 +397,7 @@ async function camera() {
     $("cameraStatus").textContent = lang === "fr"
       ? "Caméra active. Avancez vers le centre du cadre."
       : "Camera active. Step into the center of the frame.";
-    let consecutive = 0, clear = 0, videoTime = -1, quietFrames = 0;
+    let consecutive = 0, clear = 0, videoTime = -1;
     const check = () => {
       if (cycle !== cameraCycle) return;
       try {
@@ -483,13 +447,10 @@ async function camera() {
             clear = footprint < .065 ? clear + 1 : 0;
             if (clear >= 9) waitForDeparture = false;
           } else if (approach) {
-            quietFrames = 0;
-            if (!consecutive) prepareApproachAudio();
             consecutive++;
             if (consecutive >= 3) { wake(); return; }
           } else {
             consecutive = 0;
-            if (++quietFrames >= 2) cancelApproachAudio();
             if (footprint < .065) {
               cameraBackground = cameraBackground.map((value, i) => .95 * value + .05 * frame[i]);
             }
@@ -593,14 +554,13 @@ function normalizeDictation(text) {
     .replace(/\b(?:Maurisset|Mauricet|Moricet|Maurice est)\b/gi, "Morisset");
 }
 
-async function startListening(auto = false, prepared) {
+function startListening(auto = false) {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const fail = (reason) => {
     if (auto) voiceBlocked = true;
     showMicrophoneError(reason);
   };
   if (!Recognition || recognition || utterance || pending) {
-    prepared?.cancel();
     if (!Recognition) fail();
     return;
   }
@@ -609,14 +569,6 @@ async function startListening(auto = false, prepared) {
   status("micStarting");
   active.lang = lang === "fr" ? "fr-CA" : "en-CA";
   active.interimResults = true;
-  if (contextualHints && "phrases" in active && window.SpeechRecognitionPhrase) {
-    try {
-      active.phrases = campusPhrases.map(phrase => new SpeechRecognitionPhrase(phrase, 3));
-    } catch {
-      contextualHints = false;
-    }
-  }
-  let retryWithoutHints = false;
   active.continuous = false;
   const startup = setTimeout(() => {
     if (recognition !== active) return;
@@ -651,51 +603,22 @@ async function startListening(auto = false, prepared) {
   active.onerror = (event) => {
     clearTimeout(startup);
     if (recognition !== active) return;
-    if (event.error === "phrases-not-supported" && contextualHints) {
-      contextualHints = false;
-      retryWithoutHints = true;
-    } else if (!["aborted", "no-speech"].includes(event.error)) {
-      fail(event.error);
-    }
+    if (!["aborted", "no-speech"].includes(event.error)) fail(event.error);
   };
   active.onend = () => {
     clearTimeout(startup);
     if (recognition !== active) return;
     recognition = undefined;
-    releaseAudio();
     speechPreview.textContent = "";
     if (["listening", "micStarting"].includes(state)) status("ready");
-    if (retryWithoutHints) startListening(auto);
-    else if (auto) scheduleListening(900);
+    if (auto) scheduleListening(350);
   };
   try {
-    let input;
-    if (prepared) {
-      const result = await prepared.result;
-      if (result.error) throw result.error;
-      input = result.input;
-    } else {
-      input = await navigator.mediaDevices.getUserMedia(microphone);
-    }
-    if (recognition !== active) {
-      input.getTracks().forEach(track => track.stop());
-      return;
-    }
-    audioInput = input;
-    const track = audioInput.getAudioTracks()[0];
-    if (!track) throw new DOMException("No audio track", "NotFoundError");
-    try {
-      active.start(track);
-    } catch (error) {
-      if (!(error instanceof TypeError)) throw error;
-      releaseAudio();
-      active.start();
-    }
+    // Let Chrome own the microphone and avoid opening a competing media stream.
+    active.start();
   } catch (error) {
     clearTimeout(startup);
-    if (recognition !== active) return;
     recognition = undefined;
-    releaseAudio();
     status("ready");
     fail(error.name);
   }
