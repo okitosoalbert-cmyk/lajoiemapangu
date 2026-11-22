@@ -138,3 +138,9 @@ Ouvre `Emplacement-borne.txt` avec le Bloc-notes, inscris le code du pavillon o�
 Le QR **Emporter le trajet sur mon téléphone** ouvre directement un itinéraire piéton dans Google Maps. Le téléphone peut être sur un autre réseau. Google Maps calcule son propre trajet et requiert Internet.
 
 À la première ouverture du mode borne, **Détecter l’emplacement** propose le pavillon le plus proche quand la position est utilisable. Tu peux choisir un autre pavillon dans la liste. **Confirmer le pavillon** enregistre seulement son identifiant dans `Emplacement-borne.txt`, avec le navigateur ouvert sur le PC qui héberge INNOVA. La position brute sert au calcul dans le navigateur. Si tu déplaces la borne, ouvre de nouveau **Emplacement de la borne**.
+
+## Mascotte, apparence et veille
+
+La mascotte 3D est incluse dans `static/mascotte.glb`. Le lecteur model-viewer 4.1.0 est inclus avec sa licence Apache 2.0. Si le navigateur ne peut pas le démarrer, la mascotte dessinée reste disponible. Pour régénérer le modèle, exécute `blender -b --python tools/create_mascot.py` avec Blender 4.3.
+
+Le menu d’apparence conserve ton choix. **Auto** active le thème sombre de 18 h à 6 h, à l’heure d’Ottawa. **Clair** et **Sombre** remplacent l’horaire automatique. En veille, le fond bordeaux affiche la signature visuelle blanche d’uOttawa issue de son site officiel ([fichier utilisé](https://www.uottawa.ca/themes/custom/uottawa/dist/assets/logo--white.png)).

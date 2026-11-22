@@ -189,13 +189,16 @@ function animate(pattern) {
   const clip = viewer.availableAnimations.find((name) => pattern.test(name));
   if (!clip) return;
   viewer.animationName = clip;
-  viewer.play();
+  viewer.play({repetitions: clip === "Wave" ? 1 : Infinity});
 }
 
+viewer?.addEventListener("finished", () => {
+  if (state !== "speaking") animate(/idle|repos/i);
+});
 viewer?.addEventListener("load", () => {
   $("avatar").classList.add("loaded");
   mascot?.pause(true);
-  animate(/idle|repos/i);
+  animate(state === "speaking" ? /talk/i : /idle|repos/i);
 });
 
 function labelButton(id, icon, label) {

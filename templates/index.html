@@ -4,24 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>INNOVA | Guide du campus</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/style.css?v={{ build }}">
+<script src="/static/theme.js?v={{ build }}"></script>
 <script src="/static/mascot.js" defer></script>
 <script src="/static/app.js?v={{ build }}" defer></script>
 <script src="/static/kiosk-location.js?v={{ build }}" type="module"></script>
-{% if has_glb %}<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>{% endif %}
+{% if has_glb %}<script type="module" src="/static/vendor/model-viewer-4.1.0.min.js"></script>{% endif %}
 </head>
 <body data-kiosk-origin="{{ kiosk_origin }}">
 <header class="top">
  <a class="brand" href="/" aria-label="INNOVA"><span class="mark">✦</span><span>INNOVA<small>UNIVERSITÉ D’OTTAWA</small></span></a>
- <div class="tools"><div class="languages" aria-label="Language"><button id="fr" aria-pressed="true">FR</button><button id="en" aria-pressed="false">EN</button></div><button id="sound" class="icon-button" aria-pressed="false"></button><input id="volume" type="range" min="0" max="1" step="0.05" value="0.8" hidden><button id="finish" class="outline" data-copy="finish">Terminer</button></div>
+ <div class="tools"><select id="theme-setting" aria-label="Apparence"></select><div class="languages" aria-label="Language"><button id="fr" aria-pressed="true">FR</button><button id="en" aria-pressed="false">EN</button></div><button id="sound" class="icon-button" aria-pressed="false"></button><input id="volume" type="range" min="0" max="1" step="0.05" value="0.8" hidden><button id="finish" class="outline" data-copy="finish">Terminer</button></div>
 </header>
 <main class="layout">
  <aside class="mascot" aria-label="Gee-Gee">
   <div class="mascot-heading"><span data-copy="campus">UNIVERSITÉ D’OTTAWA</span><h2>Gee-Gee<span>.</span></h2></div>
   <div class="photo" id="avatar">
-   <img src="/static/geegee.webp" alt="Gee-Gee">
    <canvas aria-hidden="true"></canvas>
-   {% if has_glb %}<model-viewer src="/static/mascotte.glb" alt="Gee-Gee" camera-controls interaction-prompt="none"></model-viewer>{% endif %}
+   {% if has_glb %}<model-viewer src="/static/mascotte.glb" alt="Gee-Gee" camera-controls disable-zoom disable-pan interaction-prompt="none" camera-orbit="12deg 81deg auto" shadow-intensity="0.85" environment-image="neutral" exposure="1.25"></model-viewer>{% endif %}
   </div>
   <div class="mascot-footer"><span class="pulse"></span><span id="state" role="status"></span></div>
  </aside>
@@ -57,7 +57,7 @@
 </main>
 <footer class="footer"><span>INNOVA · <span data-copy="prototype">PROTOTYPE U-GUIDE</span></span><button type="button" data-location-settings>Emplacement de la borne</button><button id="standby" data-copy="standby">Mode borne</button><a id="campusMap" target="_blank" rel="noopener" data-copy="officialMap">Carte officielle du campus</a></footer>
 <dialog id="summary"><div class="dialog-body"><h2 data-copy="recap">Récapitulatif</h2><p id="qrStatus"></p><img id="qr" alt="QR" hidden><button id="reset" class="send" data-copy="reset">Nouvelle session</button></div></dialog>
-<dialog id="idle" class="idle"><div class="dialog-body"><div class="mark">✦</div><h2>INNOVA</h2><p>Université d’Ottawa · University of Ottawa</p><button id="start" class="send">Touchez pour commencer / Touch to start</button><button type="button" class="outline" data-location-settings>Emplacement de la borne</button><button id="camera" class="outline" data-copy="camera">Activer la détection de présence</button><p id="cameraStatus" aria-live="polite"></p><video id="preview" muted playsinline hidden></video></div></dialog>
+<dialog id="idle" class="idle"><div class="dialog-body"><img class="standby-emblem" src="/static/uottawa-veille.png" alt="Université d’Ottawa · University of Ottawa"><h2>INNOVA</h2><button id="start" class="send">Touchez pour commencer / Touch to start</button><button type="button" class="outline" data-location-settings>Emplacement de la borne</button><button id="camera" class="outline" data-copy="camera">Activer la détection de présence</button><p id="cameraStatus" aria-live="polite"></p><video id="preview" muted playsinline hidden></video></div></dialog>
 <dialog id="kiosk-location" aria-labelledby="location-heading">
  <form class="dialog-body">
   <h2 id="location-heading">Emplacement de la borne</h2>
