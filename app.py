@@ -34,7 +34,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.21-r17"
+BUILD = "2026.11.22-r17-interface-r19"
 SPEECH_MODEL = "gemini-3.8-flash-tts"
 LANGUAGES = {item["locale"]: item["name"] for item in json.loads((ROOT / "static" / "languages.json").read_text(encoding="utf-8"))}
 INSTANCE = secrets.token_hex(6)
@@ -425,7 +425,7 @@ def no_cache(response):
 
 @app.get("/")
 def home():
-    return render_template("index.html", has_glb=(ROOT / "static" / "mascotte.glb").is_file(), build=BUILD, kiosk_origin=kiosk_origin())
+    return render_template("index.html", build=BUILD, kiosk_origin=kiosk_origin())
 
 
 

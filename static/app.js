@@ -54,6 +54,7 @@ const maps = {
 const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisset", food: "food", campus: "services", admission: "Admission"};
 let lang = "fr", sound = true, state = "ready", items = [], lastTopic, confirmation, generalExchange, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
+const recapPreview = new Map();
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0, dictationStream;
 let audioActive = false, recentSpeech, revealTimer;
@@ -174,7 +175,6 @@ function scheduleListening(delay = 500) {
 }
 const svg = (name) => '<svg aria-hidden="true" viewBox="0 0 24 24">' + paths[name] + '</svg>';
 $("volume").value = "0.65";
-const viewer = document.querySelector("model-viewer");
 const mascot = window.createMascot($("avatar"));
 
 function status(value) {
@@ -183,20 +183,6 @@ function status(value) {
   $("state").textContent = copy()[value];
   $("avatar").classList.toggle("active", value === "speaking" || value === "listening");
 }
-
-function animate(pattern) {
-  if (!viewer?.availableAnimations?.length) return;
-  const clip = viewer.availableAnimations.find((name) => pattern.test(name));
-  if (!clip) return;
-  viewer.animationName = clip;
-  viewer.play();
-}
-
-viewer?.addEventListener("load", () => {
-  $("avatar").classList.add("loaded");
-  mascot?.pause(true);
-  animate(/idle|repos/i);
-});
 
 function labelButton(id, icon, label) {
   const button = $(id);
@@ -318,7 +304,6 @@ function stopVoice() {
 function finishVoice() {
   stopVoice();
   listeningStatus();
-  animate(/idle|repos/i);
   scheduleListening();
 }
 
@@ -358,7 +343,6 @@ function playLocalVoice(text, locale) {
       if (utterance !== job) return;
       job.started = true;
       status("speaking");
-      animate(/speak|talk|parl|mouth/i);
     };
     clip.onend = () => play(index + 1);
     clip.onerror = failed;
@@ -407,7 +391,6 @@ async function say(text, replyLang, spoken, reveal, replyDeadline) {
       job.started = true;
       status("speaking");
       revealSpeechReply();
-      animate(/speak|talk|parl|mouth/i);
     };
     job.audio.onwaiting = () => {
       if (utterance === job) status("speechStarting");
@@ -473,7 +456,6 @@ function interruptForSpeech() {
   stopVoice();
   touch();
   listeningStatus();
-  animate(/idle|repos/i);
 }
 
 async function ask(text, lastSpeechAt) {
@@ -565,7 +547,10 @@ async function ask(text, lastSpeechAt) {
     $("messages").scrollTop = $("messages").scrollHeight;
     if (result.id) {
       lastTopic = result.id;
-      if (!items.includes(result.id)) items.push(result.id);
+      if (!items.includes(result.id) && items.length < 20) {
+        items.push(result.id);
+        recapPreview.set(result.id, {question:text, answer:result.text});
+      }
     }
     say(result.text, result.lang, result.voice_locale, () => {
       if (!article.isConnected) return;
@@ -603,11 +588,11 @@ function clearSession() {
   $("keyboard").hidden = true;
   $("keys").setAttribute("aria-expanded", "false");
   items = [];
+  recapPreview.clear();
   lastTopic = undefined;
   confirmation = undefined;
   generalExchange = undefined;
   status("ready");
-  animate(/idle|repos/i);
 }
 
 function hideSummary() {
@@ -615,10 +600,16 @@ function hideSummary() {
   $("summary").close();
   $("qr").removeAttribute("src");
   $("qr").hidden = true;
+  $("recap-preview").replaceChildren();
+  const download = $("save-recap");
+  if (download.href.startsWith("blob:")) URL.revokeObjectURL(download.href);
+  download.removeAttribute("href");
+  download.hidden = true;
 }
 
 async function finish() {
   const verifiedItems = items;
+  const entries = Array.from(recapPreview.values());
   const cycle = ++transferCycle;
   clearSession();
   clearTimeout(activity);
@@ -626,6 +617,22 @@ async function finish() {
   $("qrStatus").textContent = verifiedItems.length ? copy().qrWait : copy().noQr;
   $("summary").showModal();
   if (!verifiedItems.length) return;
+  const fr = lang === "fr";
+  const download = $("save-recap");
+  download.textContent = fr ? "Enregistrer l’aperçu en texte" : "Save the preview as text";
+  const text = [];
+  for (const {question, answer} of entries) {
+    const entry = document.createElement("article");
+    const title = document.createElement("strong");
+    const reply = document.createElement("p");
+    title.textContent = question;
+    reply.textContent = answer;
+    entry.append(title, reply);
+    $("recap-preview").append(entry);
+    text.push(question, answer, "");
+  }
+  download.href = URL.createObjectURL(new Blob([text.join("\n")], {type:"text/plain;charset=utf-8"}));
+  download.hidden = false;
   try {
     const response = await fetch("/api/transfer", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({items: verifiedItems, lang}), signal: AbortSignal.timeout(4500)});
     if (!response.ok) throw Error("Transfer failed");
@@ -659,7 +666,6 @@ function wake() {
   mascot?.play("wave");
   touch();
   $("question").focus();
-  animate(/wave|greet|salut/i);
   if (automatic) startListening(true);
   else say(copy().heading, lang);
 }

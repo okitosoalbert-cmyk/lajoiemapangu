@@ -138,3 +138,7 @@ Ouvre `Emplacement-borne.txt` avec le Bloc-notes, inscris le code du pavillon o�
 Le QR **Emporter le trajet sur mon téléphone** ouvre directement un itinéraire piéton dans Google Maps. Le téléphone peut être sur un autre réseau. Google Maps calcule son propre trajet et requiert Internet.
 
 À la première ouverture du mode borne, **Détecter l’emplacement** propose le pavillon le plus proche quand la position est utilisable. Tu peux choisir un autre pavillon dans la liste. **Confirmer le pavillon** enregistre seulement son identifiant dans `Emplacement-borne.txt`, avec le navigateur ouvert sur le PC qui héberge INNOVA. La position brute sert au calcul dans le navigateur. Si tu déplaces la borne, ouvre de nouveau **Emplacement de la borne**.
+
+## Variante r17 avec interface r19
+
+Cette variante garde la mascotte dessinée et les fonctions de la r17. Elle ajoute les thèmes Clair, Sombre et Auto. En mode Auto, le thème sombre s’active de 18 h à 6 h, heure d’Ottawa. La veille affiche le logo d’uOttawa sur fond bordeaux. Le récapitulatif présente un aperçu à côté du QR et permet d’enregistrer cet aperçu sur la borne. Le QR reprend les fiches vérifiées de la r17 et utilise la configuration réseau décrite plus haut.
