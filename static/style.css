@@ -105,3 +105,18 @@ dialog#idle{inset:0;width:100%;height:100%;max-width:none;max-height:none;margin
 @media(max-width:500px){.top{flex-wrap:wrap;height:auto;min-height:70px;gap:7px;padding-block:9px}.tools{flex-wrap:wrap}#theme-setting{min-height:38px}}
 
 [data-theme="dark"] .composer input::placeholder{color:#c7a9bb}
+
+#summary{width:min(860px,94vw);max-height:90vh}
+.recap-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,245px);gap:18px;width:100%;margin:10px 0}
+#recap-preview{max-height:min(46vh,360px);overflow:auto;background:var(--wash);border:1px solid var(--edge);border-radius:12px;text-align:left;padding:10px 16px}
+#recap-preview:empty{display:none}
+#recap-preview article+article{border-top:1px solid var(--edge);padding-top:12px}
+#recap-preview article{padding-bottom:8px;overflow-wrap:anywhere}
+.recap-scan{align-self:center;text-align:center}
+.recap-scan #qr{width:min(100%,216px);border-radius:7px}
+#save-recap[hidden]{display:none}
+.receipt{width:100%}
+.receipt article{overflow-wrap:anywhere}
+.receipt h2{font-size:1.1rem}
+.recap-download{display:inline-block;text-decoration:none}
+@media(max-width:620px){.recap-layout{grid-template-columns:1fr}#recap-preview{max-height:25vh}}

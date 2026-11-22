@@ -27,7 +27,7 @@ Ouvrez `http://127.0.0.1:5100` pour le mode navigateur ou `http://127.0.0.1:5100
 4. Choisissez **Terminer**. La borne efface les questions et prépare un QR qui transfère les fiches vérifiées. Le téléphone doit pouvoir joindre le serveur.
 5. Ouvrez le lien une première fois, puis rechargez-le pour constater l’expiration.
 
-Pour un téléphone sur le même réseau privé que le PC, définissez `INNOVA_HOST=0.0.0.0` et `INNOVA_PUBLIC_ORIGIN=http://ADRESSE_IP_DU_PC:5100` avant de lancer le serveur. En PowerShell, une variable se configure par exemple avec `$env:INNOVA_HOST = "0.0.0.0"`. Autorisez le port TCP 5100 sur le réseau privé si le pare-feu le bloque. Gardez la borne elle-même sur `localhost` pour les permissions micro/caméra. Pour un déploiement public, utilisez HTTPS et un serveur de production protégeant également les journaux du proxy.
+Pour ouvrir le récapitulatif sur un téléphone, connecte le téléphone au même Wi-Fi privé que la borne. Le lanceur ouvre automatiquement un port local dédié à la lecture du récapitulatif. Si Windows demande une autorisation réseau, autorise Python sur le réseau privé. Le port utilisé s’affiche dans la fenêtre du lanceur. `INNOVA_RECAP_HOST` permet d’indiquer l’adresse IPv4 locale de la borne si plusieurs interfaces réseau sont disponibles. Pour un déploiement avec une adresse HTTPS joignable par le téléphone, configure `INNOVA_PUBLIC_ORIGIN`.
 
 ## Détection et voix automatiques
 
@@ -46,7 +46,7 @@ Chrome mémorise le choix sur ce PC et le mode se réactive à la prochaine ouve
 
 - **Carte 3D intégrée** · Elle s’affiche automatiquement pour 60 destinations du campus principal et des secteurs Lees et Alta Vista. Elle met en évidence la destination et le CRX comme repère. Les indications cardinales sont relatives au CRX. Les empreintes et chemins proviennent d’[OpenStreetMap](https://www.openstreetmap.org/copyright) ([ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/)). Les hauteurs sont schématiques et la carte ne calcule pas de parcours piéton. Les liens vers la carte officielle et l’itinéraire restent disponibles.
 
-- **Confidentialité** · Les messages vivent en mémoire dans la page. Le QR conserve dans SQLite les identifiants des fiches, la langue, un jeton et son échéance. Le serveur retire le jeton lors de sa première consultation, interdit l’accès au-delà de 15 minutes et purge les liens périmés au démarrage ou à la création d’un QR. L’archivage de transcriptions avec consentement sur 90 jours et les compteurs anonymes ne sont pas inclus.
+- **Confidentialité** · Le QR de fin de session transmet un lien à usage unique pour les questions et les réponses de la session. Le lien expire après 15 minutes. Les échanges sont conservés en mémoire jusqu’à l’ouverture du récapitulatif ou l’expiration du lien. Le fichier texte peut ensuite être enregistré sur le téléphone.
 
 ## Validation effectuée
 
@@ -72,7 +72,7 @@ Les essais ne remplacent pas la recette de l’équipe. Ils couvrent l’effacem
 | Deux minutes d’inactivité avec horloge accélérée | L’écran revient en veille. Le champ et la conversation sont vidés. |
 | Panne réseau et identifiant inattendu de Gemini simulés | Le serveur revient au comportement local sans inventer de fiche. |
 | Question vide ou trop longue, identifiant QR inconnu | Requêtes refusées avec le statut 400. |
-| Huit consultations concurrentes d’un même QR | Une seule reçoit le récapitulatif. Les sept autres reçoivent le statut 410. |
+| Huit demandes concurrentes d’ouverture d’un même récapitulatif | Une seule reçoit le récapitulatif. Les sept autres reçoivent le statut 410. |
 | Animation 2D de Gee-Gee | Chromium a rendu plusieurs images distinctes du mini-avatar pendant le salut et a affiché l’illustration sur ordinateur et mobile. Le hochement à la réponse, le mouvement du museau avec des événements de parole simulés, l’arrêt en veille et le repli statique ont été vérifiés. |
 
 Le parcours automatique a été vérifié dans Chromium avec détection de présence et transcription simulées. Le test couvre le réveil à partir d’images caméra simulées, l’écoute immédiate, l’envoi vocal, la lecture de la réponse, la reprise de l’écoute et la réactivation après le départ. La précision en conditions réelles reste à vérifier sur le PC de la borne.
@@ -95,7 +95,7 @@ Si une question sur uOttawa dépasse les fiches locales, INNOVA peut chercher da
 
 ### Questions du quotidien avec Gemini
 
-Quand Gemini est configuré, essaie « Combien font douze fois huit ? » ou « Explique-moi la méthode Pomodoro ». INNOVA demande à Gemini de répondre directement en texte simple. Elle peut lire la réponse et comprendre une relance comme « Donne-moi un exemple ». Pour cette relance, le texte de l’échange précédent peut être transmis à Gemini. Il reste dans la session active côté borne et est effacé à la mise en veille ou à la fin de la session. Les réponses générales ne sont pas ajoutées au récapitulatif QR. Les questions spécifiques au campus continuent de passer par les fiches et sources officielles.
+Quand Gemini est configuré, essaie « Combien font douze fois huit ? » ou « Explique-moi la méthode Pomodoro ». INNOVA demande à Gemini de répondre directement en texte simple. Elle peut lire la réponse et comprendre une relance comme « Donne-moi un exemple ». Pour cette relance, le texte de l’échange précédent peut être transmis à Gemini. Il reste dans la session active côté borne et est effacé à la mise en veille ou à la fin de la session. Les questions et les réponses générales sont incluses dans le récapitulatif de fin de session. Les questions spécifiques au campus continuent de passer par les fiches et sources officielles.
 
 Pour vérifier la connexion réelle, double-clique sur `Tester-Gemini.bat` après un premier lancement. Le test utilise la clé locale pour envoyer une question de calcul à Google et affiche le résultat ou la cause d’échec, sans afficher la clé. Le modèle par défaut est `gemini-3.5-flash-lite`.
 

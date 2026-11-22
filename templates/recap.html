@@ -1,9 +1,29 @@
 <!doctype html>
-<html lang="{{ lang }}"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>INNOVA</title><link rel="stylesheet" href="/static/style.css">
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INNOVA · {{ "Récapitulatif" if lang == "fr" else "Recap" }}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
 <main class="receipt">
 <h1>{{ "Votre récapitulatif" if lang == "fr" else "Your recap" }}</h1>
-{% for item in items %}<article><p>{{ item.text }}</p><a href="{{ item.source }}">{{ "Source officielle" if lang == "fr" else "Official source" }}</a>
-{% if item.route %} · <a href="{{ item.route }}">{{ "Itinéraire" if lang == "fr" else "Directions" }}</a>{% endif %}</article>
-{% else %}<p>Ce lien a expiré ou a déjà été utilisé. / This link has expired or has already been used.</p>{% endfor %}
-</main></html>
+{% if state == "ready" %}
+<a class="send recap-download" download="INNOVA-recap.txt" href="data:text/plain;charset=utf-8;base64,{{ download }}">{{ "Enregistrer la discussion" if lang == "fr" else "Save the conversation" }}</a>
+{% for turn in turns %}
+<article>
+<h2>{{ turn.question }}</h2>
+<p>{{ turn.answer }}</p>
+{% if turn.links %}<ul>{% for url in turn.links %}<li><a href="{{ url }}" rel="noreferrer">{{ url }}</a></li>{% endfor %}</ul>{% endif %}
+</article>
+{% endfor %}
+{% elif state == "unlock" %}
+<p>{{ "Ouvrez le récapitulatif pour l’enregistrer sur votre appareil. Le code QR fonctionne une seule fois." if lang == "fr" else "Open the recap to save it on your device. The QR code works once." }}</p>
+<form method="post"><button class="send">{{ "Ouvrir le récapitulatif" if lang == "fr" else "Open the recap" }}</button></form>
+{% else %}
+<p>Ce lien a expiré ou a déjà été utilisé. / This link has expired or has already been used.</p>
+{% endif %}
+</main>
+</body>
+</html>

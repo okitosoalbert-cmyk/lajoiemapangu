@@ -11,8 +11,8 @@ const translations = {
     placeholder: "Écrivez votre question…", send: "Envoyer", mic: "Dicter la question", keyboard: "Clavier tactile", sound: "Activer la voix",
     mute: "Couper la voix", ready: "Prêt à vous aider", working: "Recherche en cours…", micStarting: "Micro en préparation…", speechStarting: "Préparation de la voix…", listening: "Je vous écoute…", speaking: "Gee-Gee parle…",
     failure: "La réponse est indisponible. Réessayez dans un instant.", micFailure: "La dictée est indisponible. Vous pouvez écrire la question.",
-    verified: "Vérifié le", source: "Source officielle", route: "Itinéraire", scan: "Scannez pour emporter vos réponses vérifiées. Lien utilisable une fois, pendant 15 minutes.",
-    noQr: "Aucune réponse vérifiée à emporter.", qrWait: "Préparation du code QR…", qrFailure: "Le code QR est indisponible.",
+    verified: "Vérifié le", source: "Source officielle", route: "Itinéraire", scan: "Scannez sur le même Wi-Fi que la borne. Ouvrez le récapitulatif et enregistrez-le. Code valable 15 minutes.",
+    noQr: "Aucune réponse à emporter.", qrWait: "Préparation du code QR…", qrFailure: "QR indisponible. Vous pouvez enregistrer le fichier ici.",
     waiting: "Détection active. Placez-vous devant la borne.", cameraFailure: "La détection est indisponible. Touchez l’écran pour commencer.",
     studentCard: "Carte étudiante", studentCardNote: "Obtenir ou remplacer", timetable: "Horaires de cours", timetableNote: "Chercher par code de cours",
     topics: {studentCard: "Comment obtenir ma carte étudiante ?", library: "Où se trouve la bibliothèque Morisset ?", food: "Où manger sur le campus ?", services: "Quels sont les services étudiants ?"},
@@ -27,8 +27,8 @@ const translations = {
     placeholder: "Type your question…", send: "Send", mic: "Dictate question", keyboard: "Touch keyboard", sound: "Enable speech",
     mute: "Mute speech", ready: "Ready to help", working: "Looking that up…", micStarting: "Preparing microphone…", speechStarting: "Preparing speech…", listening: "Listening…", speaking: "Gee-Gee is speaking…",
     failure: "The answer is unavailable. Please try again shortly.", micFailure: "Dictation is unavailable. You can type your question.",
-    verified: "Verified on", source: "Official source", route: "Directions", scan: "Scan to take your verified answers with you. This link works once, within 15 minutes.",
-    noQr: "There are no verified answers to take with you.", qrWait: "Preparing the QR code…", qrFailure: "The QR code is unavailable.",
+    verified: "Verified on", source: "Official source", route: "Directions", scan: "Scan on the kiosk’s Wi-Fi. Open and save the recap. This code lasts 15 minutes.",
+    noQr: "There are no answers to take with you.", qrWait: "Preparing the QR code…", qrFailure: "QR unavailable. You can save the file here.",
     waiting: "Detection is active. Stand in front of the kiosk.", cameraFailure: "Presence detection is unavailable. Tap the screen to start.",
     studentCard: "Student card", studentCardNote: "Get or replace your card", timetable: "Course timetable", timetableNote: "Search using a course code",
     topics: {studentCard: "How do I get my student card?", library: "Where is Morisset Library?", food: "Where can I eat on campus?", services: "What student services are available?"},
@@ -52,7 +52,7 @@ const maps = {
   en: "https://www.uottawa.ca/about-us/administration-services/facilities/campus-maps",
 };
 const names = {crx: "CRX", ucu: "UCU", site: "SITE", stem: "STEM", mrt: "Morisset", food: "food", campus: "services", admission: "Admission"};
-let lang = "fr", sound = true, state = "ready", items = [], lastTopic, confirmation, generalExchange, activity, pending, recognition, stream;
+let lang = "fr", sound = true, state = "ready", turns = [], lastTopic, confirmation, generalExchange, activity, pending, recognition, stream;
 let cameraCycle = 0, transferCycle = 0;
 let automatic = false, waitForDeparture = false, listenTimer, voiceBlocked = false, utterance;
 let cameraBackground, microphoneSetup = 0, dictationStream;
@@ -566,10 +566,10 @@ async function ask(text, lastSpeechAt) {
     }
     if (links.childNodes.length) article.append(links);
     $("messages").scrollTop = $("messages").scrollHeight;
-    if (result.id) {
-      lastTopic = result.id;
-      if (!items.includes(result.id)) items.push(result.id);
-    }
+    if (result.id) lastTopic = result.id;
+    turns.push({question:text, answer:result.text, links:[result.source, result.route,
+      ...(result.related || []).map(item => item.url)].filter(Boolean)});
+    if (turns.length > 150) turns.shift();
     say(result.text, result.lang, result.voice_locale, () => {
       if (!article.isConnected) return;
       article.hidden = false;
@@ -605,7 +605,7 @@ function clearSession() {
   $("question").value = "";
   $("keyboard").hidden = true;
   $("keys").setAttribute("aria-expanded", "false");
-  items = [];
+  turns = [];
   lastTopic = undefined;
   confirmation = undefined;
   generalExchange = undefined;
@@ -618,19 +618,44 @@ function hideSummary() {
   $("summary").close();
   $("qr").removeAttribute("src");
   $("qr").hidden = true;
+  $("recap-preview").replaceChildren();
+  const download = $("save-recap");
+  if (download.href.startsWith("blob:")) URL.revokeObjectURL(download.href);
+  download.removeAttribute("href");
+  download.hidden = true;
 }
 
 async function finish() {
-  const verifiedItems = items;
+  const transcript = turns;
   const cycle = ++transferCycle;
   clearSession();
   clearTimeout(activity);
   activity = setTimeout(enterStandby, 120000);
-  $("qrStatus").textContent = verifiedItems.length ? copy().qrWait : copy().noQr;
+  $("qrStatus").textContent = transcript.length ? copy().qrWait : copy().noQr;
+  $("recap-preview").replaceChildren();
   $("summary").showModal();
-  if (!verifiedItems.length) return;
+  if (!transcript.length) return;
+  const fr = lang === "fr";
+  const download = $("save-recap");
+  download.textContent = fr ? "Enregistrer le fichier texte" : "Save the text file";
+  const documentText = transcript.map(turn => [
+    (fr ? "Question : " : "Question: ") + turn.question,
+    (fr ? "Réponse : " : "Answer: ") + turn.answer,
+    ...turn.links,
+  ].join("\n")).join("\n\n");
+  download.href = URL.createObjectURL(new Blob(["INNOVA\n\n", documentText], {type:"text/plain;charset=utf-8"}));
+  download.hidden = false;
+  for (const turn of transcript) {
+    const entry = document.createElement("article");
+    const question = document.createElement("strong");
+    const answer = document.createElement("p");
+    question.textContent = turn.question;
+    answer.textContent = turn.answer;
+    entry.append(question, answer);
+    $("recap-preview").append(entry);
+  }
   try {
-    const response = await fetch("/api/transfer", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({items: verifiedItems, lang}), signal: AbortSignal.timeout(4500)});
+    const response = await fetch("/api/transfer", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({turns: transcript, lang}), signal: AbortSignal.timeout(4500)});
     if (!response.ok) throw Error("Transfer failed");
     const result = await response.json();
     if (cycle !== transferCycle) return;

@@ -7,6 +7,7 @@ import re
 import secrets
 import sqlite3
 import time
+from threading import Lock, Timer
 from tempfile import NamedTemporaryFile
 import unicodedata
 from datetime import datetime
@@ -34,7 +35,7 @@ MAP = {
 }
 VERIFIED = "2026-11-20"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-BUILD = "2026.11.22-r18"
+BUILD = "2026.11.22-r19"
 SPEECH_MODEL = "gemini-3.8-flash-tts"
 LANGUAGES = {item["locale"]: item["name"] for item in json.loads((ROOT / "static" / "languages.json").read_text(encoding="utf-8"))}
 INSTANCE = secrets.token_hex(6)
@@ -809,38 +810,66 @@ def route_qr():
     return Response(image.getvalue(), mimetype="image/png")
 
 
+recap_lock = Lock()
+pending_recaps = {}
+
+
+def forget_recap(token):
+    with recap_lock:
+        pending_recaps.pop(token, None)
+
+
 @app.post("/api/transfer")
 def transfer():
+    request.max_content_length = 256_000
     data = body()
-    items = data.get("items")
-    catalog = facts()
-    if not isinstance(items, list) or not 1 <= len(items) <= 20:
-        return jsonify(error="invalid_items"), 400
-    if any(not isinstance(key, str) or key not in catalog for key in items):
-        return jsonify(error="invalid_items"), 400
+    turns = data.get("turns")
+    if not isinstance(turns, list) or not 1 <= len(turns) <= 150:
+        return jsonify(error="invalid_transcript"), 400
+    safe = []
+    for turn in turns:
+        if not isinstance(turn, dict):
+            return jsonify(error="invalid_transcript"), 400
+        question, answer = turn.get("question"), turn.get("answer")
+        links = turn.get("links", [])
+        if (not isinstance(question, str) or not 1 <= len(question) <= 500 or
+            not isinstance(answer, str) or not 1 <= len(answer) <= 8000 or not isinstance(links, list)):
+            return jsonify(error="invalid_transcript"), 400
+        safe.append({"question": question, "answer": answer,
+                     "links": [link for link in links[:8] if isinstance(link, str)
+                               and len(link) <= 1500 and re.match(r"^https?://[^\s]+$", link)]})
+    origin = os.getenv("INNOVA_PUBLIC_ORIGIN") or app.config.get("RECAP_ORIGIN")
+    if not origin:
+        return jsonify(error="recap_network_unavailable"), 503
     token = secrets.token_urlsafe(24)
-    lang = preferred(data)
-    with connect() as db:
-        db.execute("DELETE FROM transfers WHERE expires <= ?", (time.time(),))
-        db.execute("INSERT INTO transfers VALUES (?, ?, ?, ?)", (token, json.dumps(list(dict.fromkeys(items))), int(time.time()) + 900, lang))
-    origin = os.getenv("INNOVA_PUBLIC_ORIGIN", request.host_url).rstrip("/")
-    url = f"{origin}/reprise/{token}"
+    with recap_lock:
+        if len(pending_recaps) >= 64:
+            return jsonify(error="recap_busy"), 503
+        pending_recaps[token] = (safe, preferred(data), time.monotonic() + 900)
+    expiry = Timer(900, forget_recap, args=(token,))
+    expiry.daemon = True
+    expiry.start()
     image = io.BytesIO()
-    qrcode.make(url).save(image, format="PNG")
+    qrcode.make(f"{origin.rstrip('/')}/reprise/{token}").save(image, format="PNG")
     return jsonify(qr="data:image/png;base64," + base64.b64encode(image.getvalue()).decode())
 
 
-@app.get("/reprise/<token>")
+@app.route("/reprise/<token>", methods=["GET", "POST"])
 def recap(token):
-    with connect() as db:
-        row = db.execute("DELETE FROM transfers WHERE token = ? RETURNING items, expires, lang", (token,)).fetchone()
-    if row is None or row[1] <= time.time():
-        return render_template("recap.html", lang="fr", items=[]), 410
-    catalog = facts()
-    return render_template("recap.html", lang=row[2], items=[
-        dict(format_fact(catalog[key], row[2]), text=orientation(key, row[2], catalog[key]) if key in PLACES else catalog[key][row[2]])
-        for key in json.loads(row[0]) if key in catalog
-    ])
+    with recap_lock:
+        entry = pending_recaps.pop(token, None) if request.method == "POST" else pending_recaps.get(token)
+    if entry is None or entry[2] <= time.monotonic():
+        return render_template("recap.html", lang="fr", state="expired"), 410
+    turns, lang, _ = entry
+    if request.method == "GET":
+        return render_template("recap.html", lang=lang, state="unlock")
+    question, answer = ("Question", "Réponse") if lang == "fr" else ("Question", "Answer")
+    document = "\n\n".join(
+        "\n".join([f"{question} : {turn['question']}", f"{answer} : {turn['answer']}", *turn["links"]])
+        for turn in turns
+    )
+    download = base64.b64encode(("INNOVA\n\n" + document + "\n").encode("utf-8")).decode()
+    return render_template("recap.html", lang=lang, state="ready", turns=turns, download=download)
 
 
 initialize()
@@ -848,7 +877,9 @@ initialize()
 
 if __name__ == "__main__":
     from contextlib import redirect_stderr
+    import ipaddress
     import socket
+    from threading import Thread
     from subprocess import Popen
     import sys
     import webbrowser
@@ -875,6 +906,34 @@ if __name__ == "__main__":
             return ExclusiveKioskServer(host, port, app, handler=KioskRequestHandler)
         return make_server(host, port, app, threaded=True, request_handler=KioskRequestHandler)
 
+    def start_phone_recap():
+        if os.getenv("INNOVA_PUBLIC_ORIGIN"):
+            return
+        try:
+            address = os.getenv("INNOVA_RECAP_HOST")
+            if not address:
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+                    probe.connect(("192.0.2.1", 9))
+                    address = probe.getsockname()[0]
+            ip = ipaddress.IPv4Address(address)
+            if ip.is_loopback or not ip.is_private or ip.is_link_local:
+                return
+
+            def public_recap(environ, start_response):
+                path = environ.get("PATH_INFO", "")
+                method = environ.get("REQUEST_METHOD", "")
+                if ((method in {"GET", "POST"} and re.fullmatch(r"/reprise/[A-Za-z0-9_-]{32}", path))
+                    or (method == "GET" and path == "/static/style.css")):
+                    return app(environ, start_response)
+                return Response(status=404)(environ, start_response)
+
+            listener = make_server(address, 0, public_recap, threaded=True, request_handler=KioskRequestHandler)
+        except (OSError, ValueError, SystemExit):
+            return
+        app.config["RECAP_ORIGIN"] = f"http://{address}:{listener.server_port}"
+        Thread(target=listener.serve_forever, daemon=True).start()
+        print(f"QR recap disponible sur le reseau local : {address}:{listener.server_port}", flush=True)
+
     if "--check-gemini" in sys.argv:
         model = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
         print(f"Modele teste : {model}", flush=True)
@@ -898,6 +957,7 @@ if __name__ == "__main__":
     port = int(os.getenv("INNOVA_PORT", "5100"))
 
     if "--open-browser" not in sys.argv:
+        start_phone_recap()
         app.run(host=host, port=port, request_handler=KioskRequestHandler)
     else:
         try:
@@ -943,4 +1003,5 @@ if __name__ == "__main__":
                 webbrowser.open(address, new=2)
             except webbrowser.Error:
                 pass
+        start_phone_recap()
         server.serve_forever()

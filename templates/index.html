@@ -56,7 +56,7 @@
  </section>
 </main>
 <footer class="footer"><span>INNOVA · <span data-copy="prototype">PROTOTYPE U-GUIDE</span></span><button type="button" data-location-settings>Emplacement de la borne</button><button id="standby" data-copy="standby">Mode borne</button><a id="campusMap" target="_blank" rel="noopener" data-copy="officialMap">Carte officielle du campus</a></footer>
-<dialog id="summary"><div class="dialog-body"><h2 data-copy="recap">Récapitulatif</h2><p id="qrStatus"></p><img id="qr" alt="QR" hidden><button id="reset" class="send" data-copy="reset">Nouvelle session</button></div></dialog>
+<dialog id="summary"><div class="dialog-body"><h2 data-copy="recap">Récapitulatif</h2><div class="recap-layout"><div id="recap-preview"></div><div class="recap-scan"><img id="qr" alt="Code QR INNOVA" hidden><p id="qrStatus" role="status"></p></div></div><a id="save-recap" class="outline" download="INNOVA-recap.txt" hidden></a><button id="reset" class="send" data-copy="reset">Nouvelle session</button></div></dialog>
 <dialog id="idle" class="idle"><div class="dialog-body"><img class="standby-emblem" src="/static/uottawa-veille.png" alt="Université d’Ottawa · University of Ottawa"><h2>INNOVA</h2><button id="start" class="send">Touchez pour commencer / Touch to start</button><button type="button" class="outline" data-location-settings>Emplacement de la borne</button><button id="camera" class="outline" data-copy="camera">Activer la détection de présence</button><p id="cameraStatus" aria-live="polite"></p><video id="preview" muted playsinline hidden></video></div></dialog>
 <dialog id="kiosk-location" aria-labelledby="location-heading">
  <form class="dialog-body">
